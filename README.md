@@ -1,2 +1,1 @@
-# USDT Dashboard
-新版加入錯誤提示與 TronLink 檢查
+# 最終版本：加入輪詢偵測 TronLink 注入

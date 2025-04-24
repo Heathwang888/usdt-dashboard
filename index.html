@@ -101,12 +101,21 @@
     }
 
     window.addEventListener("load", () => {
-      if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-        logStatus("🟢 已連接錢包：" + window.tronWeb.defaultAddress.base58, "green");
-        fetchApprovals();
-      } else {
-        logStatus("❌ 尚未偵測到 TronLink。請用 TronLink DApp 瀏覽器開啟此頁面", "red");
-      }
+      let attempts = 0;
+      const check = setInterval(() => {
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+          clearInterval(check);
+          logStatus("🟢 已連接錢包：" + window.tronWeb.defaultAddress.base58, "green");
+          fetchApprovals();
+        } else {
+          attempts++;
+          logStatus("⏳ 嘗試連接 TronLink 中（" + attempts + "/20）...");
+          if (attempts >= 20) {
+            clearInterval(check);
+            logStatus("❌ 無法偵測到 TronLink。請確認你使用的是 TronLink 的 DApp 瀏覽器", "red");
+          }
+        }
+      }, 500);
     });
   </script>
 </body>
