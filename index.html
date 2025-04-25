@@ -41,6 +41,7 @@
   <div>
     <input type="text" id="checkWallet" placeholder="輸入錢包地址查詢">
     <button onclick="checkWallet()">查詢授權</button>
+    <button onclick="renderWallets()">🔄 重新整理</button>
   </div>
   <div id="wallets"></div>
   <div id="status">尚未連接錢包</div>
@@ -140,16 +141,19 @@
     window.addEventListener("load", () => {
       let attempts = 0;
       const check = setInterval(() => {
-        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58 && window.tronWeb.ready) {
           clearInterval(check);
-          document.getElementById("status").innerText = "🟢 已連接：" + tronWeb.defaultAddress.base58;
+          document.getElementById("status").innerText = "🟢 已連接錢包：" + tronWeb.defaultAddress.base58;
           renderWallets();
         } else {
           attempts++;
-          document.getElementById("status").innerText = "等待錢包連接中...（" + attempts + ")";
-          if (attempts > 20) clearInterval(check);
+          document.getElementById("status").innerText = "等待錢包連接中...（" + attempts + "）";
+          if (attempts > 30) {
+            clearInterval(check);
+            document.getElementById("status").innerText = "❌ 未偵測到 TronLink，請使用 Chrome 並安裝錢包擴充功能";
+          }
         }
-      }, 800);
+      }, 1000);
     });
   </script>
 </body>
