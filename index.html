@@ -3,484 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRON USDT 管理面板</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>USDT管理面板</title>
     <style>
-        body { 
-            background-color: #f8f9fa; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
         }
-        .container { 
-            padding-top: 2rem; 
-            max-width: 1000px; 
+
+        .system-status {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .card { 
-            margin-bottom: 1rem; 
-            border: none;
-            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-            border-radius: 0.5rem;
+
+        .warning {
+            color: #e74c3c;
+            font-weight: bold;
         }
-        .balance-info { 
-            font-size: 1.1rem;
-            color: #0d6efd;
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
         }
+
+        .status-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .status-item h3 {
+            margin: 0 0 8px 0;
+            color: #2d3436;
+        }
+
+        .wallet-list {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         .wallet-item {
-            background: #fff;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid #e9ecef;
-            transition: all 0.3s ease;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .wallet-item:hover {
-            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
+
+        .wallet-item:last-child {
+            border-bottom: none;
         }
-        .loading {
-            display: none;
-            margin-left: 1rem;
-        }
-        .transfer-input {
-            width: 150px;
-            display: inline-block;
-        }
-        .btn {
-            border-radius: 0.375rem;
-            padding: 0.5rem 1.5rem;
-            transition: all 0.3s ease;
-        }
-        .btn-sm {
-            padding: 0.25rem 0.75rem;
-        }
-        .copy-button {
+
+        .refresh-button {
+            background: #4834d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            color: #6c757d;
-            margin-left: 0.5rem;
-            transition: color 0.3s ease;
+            margin-bottom: 20px;
         }
-        .copy-button:hover {
-            color: #0d6efd;
+
+        .refresh-button:hover {
+            background: #686de0;
         }
-        .data-info {
-            background: #e9ecef;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
+
+        .address {
+            font-family: monospace;
+            color: #2d3436;
         }
-        .transaction-item {
-            border-left: 3px solid #198754;
-            padding-left: 1rem;
+
+        .balance {
+            font-weight: bold;
+            color: #00b894;
         }
-        .alert {
-            border-radius: 0.5rem;
-        }
-        .modal-content {
-            border-radius: 0.5rem;
-        }
-        .badge {
-            font-weight: normal;
-            padding: 0.5em 0.75em;
-        }
-        .authorization-badge {
-            font-size: 0.8rem;
-            padding: 0.3em 0.6em;
-            margin-left: 0.5rem;
+
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="mb-4 text-center">TRON USDT 管理面板</h1>
-        
-        <!-- 数据信息显示 -->
-        <div id="dataInfo" class="data-info text-center">
-            <i class="fas fa-info-circle me-2"></i>正在加载数据信息...
-        </div>
+    <button class="refresh-button" onclick="refreshData()">刷新數據</button>
 
-        <!-- 添加新钱包 -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-plus-circle me-2"></i>添加钱包
-                </h5>
-                <div class="input-group mb-3">
-                    <input type="text" id="newAddress" class="form-control" placeholder="输入TRON钱包地址">
-                    <button class="btn btn-primary" onclick="addNewWallet()">
-                        <i class="fas fa-plus me-2"></i>手动添加
-                    </button>
-                </div>
-                <div class="mt-2">
-                    <button class="btn btn-outline-primary" onclick="detectAuthorizedWallets()">
-                        <i class="fas fa-search me-2"></i>自动检测已授权钱包
-                    </button>
-                    <small class="text-muted ms-2">自动检测与合约交互过的钱包</small>
-                </div>
+    <div class="system-status">
+        <h2>系統狀態</h2>
+        <div class="status-grid">
+            <div class="status-item">
+                <h3>發動合約錢包</h3>
+                <div class="address" id="executor-address"></div>
+                <div id="executor-balance"></div>
             </div>
-        </div>
-
-        <!-- 已保存钱包列表 -->
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-wallet me-2"></i>已保存钱包
-                        <span id="walletCount" class="badge bg-primary ms-2">0</span>
-                    </h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="refreshAllBalances()">
-                        <i class="fas fa-sync-alt me-2"></i>刷新所有余额
-                    </button>
-                </div>
-                <div id="savedWallets">
-                    <!-- 钱包列表将通过JavaScript动态添加 -->
-                </div>
-            </div>
-        </div>
-
-        <!-- 交易记录 -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-history me-2"></i>最近交易记录
-                </h5>
-                <div id="transactionList" class="mt-3">
-                    <!-- 交易记录将通过JavaScript动态添加 -->
-                </div>
-            </div>
-        </div>
-
-        <!-- 合约信息 -->
-        <div class="card mt-4">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-info-circle me-2"></i>合约信息
-                </h5>
-                <div class="mt-3">
-                    <p><strong>USDT合约地址：</strong> 
-                        <span id="contractAddress">TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</span>
-                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('contractAddress')"></i>
-                    </p>
-                    <p><strong>接收钱包地址：</strong> 
-                        <span id="receiverAddress">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</span>
-                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('receiverAddress')"></i>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-        <!-- 转账确认模态框 -->
-    <div class="modal fade" id="transferModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">确认转账</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>请确认以下转账信息
-                    </div>
-                    <p><strong>从钱包：</strong><br><span id="modalFromAddress" class="text-break"></span></p>
-                    <p><strong>转账金额：</strong><br><span id="modalAmount"></span> USDT</p>
-                    <p><strong>接收地址：</strong><br><span id="modalToAddress" class="text-break"></span></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmTransfer()">确认转账</button>
-                </div>
+            <div class="status-item">
+                <h3>水庫錢包</h3>
+                <div class="address" id="receiver-address"></div>
+                <div id="receiver-balance"></div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <div class="wallet-list" id="wallet-list">
+        <h2>已授權錢包</h2>
+        <!-- 錢包列表將在這裡動態生成 -->
+    </div>
+
     <script>
-        // API配置
-        const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
-        const RECEIVER_ADDRESS = 'TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899';
-        let transferModal;
-        let currentTransferData = null;
+        const API_BASE_URL = 'http://localhost:3000'; // 請根據實際情況修改
 
-        // 页面加载时初始化
-        window.onload = function() {
-            transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
-            loadSavedWallets();
-            // 每60秒自动刷新一次余额
-            setInterval(refreshAllBalances, 60000);
-        };
-
-        // 从localStorage加载保存的钱包
-        function loadSavedWallets() {
-            const wallets = getSavedWallets();
-            refreshWalletsList(wallets);
-            refreshAllBalances();
-            updateWalletCount(wallets.length);
-        }
-
-        // 更新钱包数量显示
-        function updateWalletCount(count) {
-            document.getElementById('walletCount').textContent = count;
-        }
-
-        // 获取保存的钱包列表
-        function getSavedWallets() {
-            const walletsJson = localStorage.getItem('savedWallets') || '[]';
-            return JSON.parse(walletsJson);
-        }
-
-        // 保存钱包列表
-        function saveWallets(wallets) {
-            localStorage.setItem('savedWallets', JSON.stringify(wallets));
-            updateWalletCount(wallets.length);
-        }
-
-        // 添加新钱包
-        async function addNewWallet() {
-            const address = document.getElementById('newAddress').value.trim();
-            if (!address) {
-                alert('请输入钱包地址');
-                return;
-            }
-
-            const wallets = getSavedWallets();
-            if (wallets.includes(address)) {
-                alert('该钱包已经添加过了');
-                return;
-            }
-
+        async function refreshData() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/balance/${address}`);
-                if (!response.data.isAuthorized) {
-                    alert('该钱包未授权合约，无法添加');
-                    return;
-                }
-                wallets.push(address);
-                saveWallets(wallets);
-                document.getElementById('newAddress').value = '';
-                refreshWalletsList(wallets);
-                refreshAllBalances();
-                alert('钱包添加成功！');
+                const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
+                const data = await response.json();
+
+                // 更新系統狀態
+                updateSystemStatus(data.systemStatus);
+
+                // 更新錢包列表
+                updateWalletList(data.wallets);
             } catch (error) {
-                alert('添加失败: ' + (error.response?.data?.error || error.message));
+                console.error('Error fetching data:', error);
+                alert('獲取數據失敗，請重試');
             }
         }
 
-        // 检测已授权的钱包
-        async function detectAuthorizedWallets() {
-            const loadingBtn = document.querySelector('button[onclick="detectAuthorizedWallets()"]');
-            const originalText = loadingBtn.innerHTML;
-            loadingBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>正在检测...';
-            loadingBtn.disabled = true;
-
-            try {
-                const response = await axios.get(`${API_BASE_URL}/authorized-wallets`);
-                const { wallets, fromCache, lastUpdate } = response.data;
-                
-                updateDataInfo(fromCache, lastUpdate);
-                
-                let savedWallets = getSavedWallets();
-                let newWallets = [];
-
-                for (const wallet of wallets) {
-                    if (!savedWallets.includes(wallet.address)) {
-                        newWallets.push(wallet);
-                        savedWallets.push(wallet.address);
-                    }
-                }
-
-                if (newWallets.length > 0) {
-                    saveWallets(savedWallets);
-                    refreshWalletsList(savedWallets);
-                    
-                    let message = `发现 ${newWallets.length} 个已授权钱包：\n\n`;
-                    newWallets.forEach(wallet => {
-                        message += `地址: ${wallet.address}\n`;
-                        message += `余额: ${wallet.balance} USDT\n`;
-                        message += `授权额度: ${wallet.allowance} USDT\n\n`;
-                    });
-                    alert(message);
-                } else {
-                    alert('没有发现新的已授权钱包。');
-                }
-            } catch (error) {
-                alert('检测失败: ' + (error.response?.data?.error || error.message));
-            } finally {
-                loadingBtn.innerHTML = originalText;
-                loadingBtn.disabled = false;
+        function updateSystemStatus(status) {
+            // 更新發動合約錢包狀態
+            document.getElementById('executor-address').textContent = status.executor.address;
+            const executorBalance = document.getElementById('executor-balance');
+            if (status.executor.lowTrxBalance) {
+                executorBalance.className = 'warning';
+                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance} (餘額過低，請充值！)`;
+            } else {
+                executorBalance.className = 'balance';
+                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance}`;
             }
+
+            // 更新水庫錢包狀態
+            document.getElementById('receiver-address').textContent = status.receiver.address;
+            document.getElementById('receiver-balance').textContent = 
+                `USDT餘額: ${status.receiver.usdtBalance}`;
         }
 
-        // 更新数据信息显示
-        function updateDataInfo(fromCache, lastUpdate) {
-            const lastUpdateTime = new Date(lastUpdate).toLocaleString();
-            const dataSource = fromCache ? '缓存' : '区块链';
-            
-            document.getElementById('dataInfo').innerHTML = `
-                <i class="fas fa-info-circle me-2"></i>
-                数据来源: ${dataSource} | 
-                最后更新: ${lastUpdateTime} 
-                ${fromCache ? 
-                    `<button class="btn btn-sm btn-link" onclick="forceRefresh()">
-                        <i class="fas fa-sync-alt me-1"></i>强制刷新
-                    </button>` : 
-                    ''
-                }
+        function updateWalletList(wallets) {
+            const walletList = document.getElementById('wallet-list');
+            const walletsHtml = wallets.map(wallet => `
+                <div class="wallet-item">
+                    <div>
+                        <div class="address">${wallet.address}</div>
+                        <div>USDT餘額: ${wallet.balance}</div>
+                    </div>
+                    <div>
+                        <div>授權額度: ${wallet.allowance}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            walletList.innerHTML = `
+                <h2>已授權錢包</h2>
+                ${walletsHtml}
             `;
         }
 
-        // 强制刷新数据
-        async function forceRefresh() {
-            try {
-                const response = await axios.get(`${API_BASE_URL}/authorized-wallets?force=true`);
-                updateDataInfo(false, Date.now());
-                refreshAllBalances();
-            } catch (error) {
-                alert('刷新失败: ' + error.message);
-            }
-        }
+        // 頁面加載時自動刷新數據
+        document.addEventListener('DOMContentLoaded', refreshData);
 
-        // 刷新钱包列表显示
-        function refreshWalletsList(wallets) {
-            const container = document.getElementById('savedWallets');
-            container.innerHTML = '';
-
-            wallets.forEach(address => {
-                const walletDiv = document.createElement('div');
-                walletDiv.className = 'wallet-item';
-                walletDiv.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center">
-                                <div class="me-2 text-break">${address}</div>
-                                <i class="fas fa-copy copy-button" onclick="copyToClipboard('${address}')"></i>
-                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeWallet('${address}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                            <div class="balance-info mt-2" id="balance-${address}">
-                                <i class="fas fa-spinner fa-spin"></i> 加载中...
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <input type="number" class="form-control form-control-sm transfer-input me-2" 
-                                   id="amount-${address}" placeholder="USDT数量" step="0.000001">
-                            <button class="btn btn-sm btn-success" onclick="prepareTransfer('${address}')">
-                                <i class="fas fa-paper-plane me-1"></i>转账
-                            </button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(walletDiv);
-            });
-        }
-
-        // 刷新所有钱包余额
-        async function refreshAllBalances() {
-            const wallets = getSavedWallets();
-            for (const address of wallets) {
-                try {
-                    const response = await axios.get(`${API_BASE_URL}/balance/${address}`);
-                    updateBalanceDisplay(address, response.data.balance, response.data.allowance, response.data.isAuthorized);
-                } catch (error) {
-                    updateBalanceDisplay(address, '查询失败', '0', false);
-                }
-            }
-        }
-
-        // 更新余额显示
-        function updateBalanceDisplay(address, balance, allowance, isAuthorized) {
-            const balanceDiv = document.getElementById(`balance-${address}`);
-            if (balanceDiv) {
-                balanceDiv.innerHTML = `
-                    <i class="fas fa-coins me-1"></i>
-                    余额: ${balance} USDT
-                    ${allowance ? `<span class="ms-3">授权额度: ${allowance} USDT</span>` : ''}
-                    <span class="badge ${isAuthorized ? 'bg-success' : 'bg-warning'} authorization-badge">
-                        ${isAuthorized ? '已授权' : '未授权'}
-                    </span>
-                `;
-            }
-        }
-
-        // 移除钱包
-        function removeWallet(address) {
-            if (!confirm('确定要移除这个钱包吗？')) return;
-            
-            const wallets = getSavedWallets().filter(w => w !== address);
-            saveWallets(wallets);
-            refreshWalletsList(wallets);
-        }
-
-        // 准备转账
-        function prepareTransfer(address) {
-            const amount = document.getElementById(`amount-${address}`).value;
-            if (!amount || amount <= 0) {
-                alert('请输入有效的转账金额');
-                return;
-            }
-
-            currentTransferData = { address, amount };
-            document.getElementById('modalFromAddress').textContent = address;
-            document.getElementById('modalAmount').textContent = amount;
-            document.getElementById('modalToAddress').textContent = RECEIVER_ADDRESS;
-            transferModal.show();
-        }
-
-        // 确认转账
-        async function confirmTransfer() {
-            if (!currentTransferData) return;
-
-            try {
-                const response = await axios.post(`${API_BASE_URL}/transfer`, currentTransferData);
-                alert(`转账成功!\n交易ID: ${response.data.txId}`);
-                addTransactionRecord(response.data);
-                document.getElementById(`amount-${currentTransferData.address}`).value = '';
-                refreshAllBalances();
-            } catch (error) {
-                alert('转账失败: ' + (error.response?.data?.error || error.message));
-            } finally {
-                transferModal.hide();
-                currentTransferData = null;
-            }
-        }
-
-        // 添加交易记录
-        function addTransactionRecord(transaction) {
-            const transactionList = document.getElementById('transactionList');
-            const recordDiv = document.createElement('div');
-            recordDiv.className = 'transaction-item wallet-item';
-            recordDiv.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-muted">从</small>
-                        <div class="text-truncate" style="max-width: 200px;">${transaction.from}</div>
-                    </div>
-                    <div class="text-center">
-                        <i class="fas fa-arrow-right text-success"></i>
-                        <div class="mt-1">${transaction.amount} USDT</div>
-                    </div>
-                    <div>
-                        <small class="text-muted">至</small>
-                        <div class="text-truncate" style="max-width: 200px;">${transaction.to}</div>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small class="text-muted">交易ID: ${transaction.txId}</small>
-                </div>
-            `;
-            
-            transactionList.insertBefore(recordDiv, transactionList.firstChild);
-        }
-
-        // 复制到剪贴板
-        async function copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                alert('已复制到剪贴板');
-            } catch (err) {
-                alert('复制失败: ' + err);
-            }
-        }
+        // 每30秒自動刷新一次
+        setInterval(refreshData, 30000);
     </script>
 </body>
 </html>
