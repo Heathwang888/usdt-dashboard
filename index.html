@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>監控頁面</title>
+    <title>合約監控頁面</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,39 +32,83 @@
         .card p {
             margin: 10px 0;
         }
+        button {
+            padding: 10px 15px;
+            background-color: #f18d00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #f8b62d;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>合約監控頁面</h1>
         <div class="card">
+            <h2>已授權錢包地址</h2>
+            <p id="walletAddress">加載中...</p>
+        </div>
+        <div class="card">
             <h2>USDT 餘額</h2>
             <p id="usdtBalance">加載中...</p>
         </div>
         <div class="card">
-            <h2>合約授權狀況</h2>
-            <p id="contractStatus">加載中...</p>
+            <h2>查詢地址授權狀態</h2>
+            <input type="text" id="queryAddress" placeholder="輸入地址查詢" />
+            <button onclick="checkAuthorization()">查詢</button>
+            <p id="addressStatus">加載中...</p>
         </div>
         <div class="card">
-            <h2>合約地址</h2>
-            <p id="contractAddress">加載中...</p>
+            <button onclick="transferFunds()">轉帳</button>
         </div>
+        <button onclick="refreshData()">刷新</button>
     </div>
 
     <script>
         // 假設你從後端API取得這些數據
         const fetchMonitoringData = () => {
-            fetch('/api/monitoring') // 這裡的API路徑需要根據後端設置
+            fetch('/api/monitoring') // 後端監控數據API
                 .then(response => response.json())
                 .then(data => {
+                    document.getElementById('walletAddress').innerText = data.walletAddress;
                     document.getElementById('usdtBalance').innerText = data.usdtBalance;
-                    document.getElementById('contractStatus').innerText = data.contractStatus;
-                    document.getElementById('contractAddress').innerText = data.contractAddress;
                 })
                 .catch(err => console.error('Error fetching monitoring data:', err));
         };
 
-        // 頁面加載後執行
+        // 查詢地址是否授權
+        const checkAuthorization = () => {
+            const address = document.getElementById('queryAddress').value;
+            fetch(`/api/check-authorization?address=${address}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('addressStatus').innerText = data.isAuthorized ? '已授權' : '未授權';
+                })
+                .catch(err => console.error('Error checking authorization:', err));
+        };
+
+        // 轉帳功能
+        const transferFunds = () => {
+            fetch('/api/transfer', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('轉帳成功！交易哈希: ' + data.transactionHash);
+            })
+            .catch(err => console.error('Error during transfer:', err));
+        };
+
+        // 刷新數據
+        const refreshData = () => {
+            fetchMonitoringData();
+        };
+
+        // 頁面加載時抓取數據
         window.onload = fetchMonitoringData;
     </script>
 </body>
