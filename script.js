@@ -1,4 +1,4 @@
-// 確認前端是否從後端獲取資料
+// 查詢所有已授權錢包
 async function fetchWallets() {
   try {
     const response = await axios.get("http://localhost:3333/wallets");
@@ -30,6 +30,23 @@ async function fetchWallets() {
 
 // 點擊按鈕觸發刷新
 document.getElementById("refreshButton").addEventListener("click", fetchWallets);
+
+// 點擊檢查授權
+document.getElementById("checkAuthorizationButton").addEventListener("click", async () => {
+  const walletAddress = document.getElementById("walletAddress").value.trim();
+
+  if (!walletAddress) return alert("請輸入錢包地址");
+
+  try {
+    const response = await axios.post("http://localhost:3333/check-wallet-authorization", {
+      walletAddress: walletAddress
+    });
+    alert(response.data.message);
+    fetchWallets();
+  } catch (error) {
+    alert(error.response?.data?.error || "檢查授權失敗");
+  }
+});
 
 // 頁面加載時自動執行一次查詢
 fetchWallets();
