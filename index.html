@@ -84,7 +84,7 @@
                 // 刷新錢包列表
                 fetchWallets();
             } catch (error) {
-                alert("授權檢查失敗： " + error.response?.data?.error || error.message);
+                alert("授權檢查失敗： " + (error.response?.data?.error || error.message));
             }
         }
 
