@@ -1,146 +1,71 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>USDT 授權監控後台</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
+    <title>監控頁面</title>
     <style>
         body {
-            font-family: sans-serif;
-            padding: 2em;
-            background: #f2f2f2;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
             text-align: center;
         }
-        button {
-            background: #0984e3;
-            color: #fff;
-            border: none;
-            padding: 1em 2em;
+        .card {
+            background: #f8f8f8;
+            margin-bottom: 20px;
+            padding: 15px;
             border-radius: 8px;
-            font-size: 1.2em;
-            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
         }
-        .input {
-            padding: 0.5em;
-            margin: 0.5em 0;
-            width: 80%;
-            max-width: 300px;
-            box-sizing: border-box;
-        }
-        table {
-            margin-top: 20px;
-            width: 80%;
-            margin-left: auto;
-            margin-right: auto;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-            border: 1px solid #ddd;
+        .card p {
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-
-    <h1>USDT 授權監控後台</h1>
-    <div>
-        <label for="walletAddress">輸入錢包地址：</label>
-        <input type="text" id="walletAddress" class="input" placeholder="輸入錢包地址">
-        <button id="checkAuthorizationButton">檢查授權</button>
-        <button id="refreshButton">刷新錢包列表</button>
+    <div class="container">
+        <h1>合約監控頁面</h1>
+        <div class="card">
+            <h2>USDT 餘額</h2>
+            <p id="usdtBalance">加載中...</p>
+        </div>
+        <div class="card">
+            <h2>合約授權狀況</h2>
+            <p id="contractStatus">加載中...</p>
+        </div>
+        <div class="card">
+            <h2>合約地址</h2>
+            <p id="contractAddress">加載中...</p>
+        </div>
     </div>
-    <br>
-    <table id="walletsTable">
-        <thead>
-            <tr>
-                <th>錢包地址</th>
-                <th>USDT 授權額度</th>
-                <th>USDT 餘額</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
 
     <script>
-        const API_URL = "https://peaceful-precious-ceres.glitch.me";  // Glitch 上的服務地址
+        // 假設你從後端API取得這些數據
+        const fetchMonitoringData = () => {
+            fetch('/api/monitoring') // 這裡的API路徑需要根據後端設置
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('usdtBalance').innerText = data.usdtBalance;
+                    document.getElementById('contractStatus').innerText = data.contractStatus;
+                    document.getElementById('contractAddress').innerText = data.contractAddress;
+                })
+                .catch(err => console.error('Error fetching monitoring data:', err));
+        };
 
-        // 檢查錢包授權
-        async function checkWalletAuthorization() {
-            const walletAddress = document.getElementById("walletAddress").value.trim();
-            if (!walletAddress) return alert("請輸入錢包地址");
-
-            try {
-                const response = await axios.post(`${API_URL}/check-wallet-authorization`, { walletAddress });
-
-                // 顯示授權成功提示
-                alert(response.data.message);
-
-                // 更新錢包列表
-                fetchWallets();
-            } catch (error) {
-                alert("授權檢查失敗： " + (error.response?.data?.error || error.message));
-            }
-        }
-
-        // 刷新錢包列表
-        async function fetchWallets() {
-            try {
-                const response = await axios.get(`${API_URL}/wallets`);
-                const wallets = response.data;
-
-                const tableBody = document.querySelector("#walletsTable tbody");
-                tableBody.innerHTML = ''; // 清空現有資料
-
-                wallets.forEach(wallet => {
-                    const row = document.createElement("tr");
-                    const walletCell = document.createElement("td");
-                    const allowanceCell = document.createElement("td");
-                    const balanceCell = document.createElement("td");
-                    const actionsCell = document.createElement("td");
-
-                    walletCell.textContent = wallet.address;
-                    allowanceCell.textContent = wallet.allowance || "未授權";  // 顯示 USDT 授權額度
-                    balanceCell.textContent = wallet.balance || "無餘額";  // 顯示 USDT 餘額
-                    actionsCell.innerHTML = `<button onclick="triggerTransfer('${wallet.address}')">觸發轉帳</button>`;
-
-                    row.appendChild(walletCell);
-                    row.appendChild(allowanceCell);
-                    row.appendChild(balanceCell);
-                    row.appendChild(actionsCell);
-
-                    tableBody.appendChild(row);
-                });
-            } catch (error) {
-                console.error("載入錢包資料失敗", error);
-                alert("載入資料失敗");
-            }
-        }
-
-        // 觸發轉帳
-        async function triggerTransfer(address) {
-            const amount = prompt("請輸入轉帳金額：");
-            if (!amount || isNaN(amount) || amount <= 0) return alert("請輸入有效金額");
-
-            try {
-                const response = await axios.post(`${API_URL}/trigger-transfer`, { userAddress: address, amount });
-                alert("✅ 轉帳成功！");
-            } catch (error) {
-                alert("❌ 轉帳失敗：" + error.message);
-            }
-        }
-
-        // 綁定事件
-        document.getElementById("checkAuthorizationButton").addEventListener("click", checkWalletAuthorization);
-        document.getElementById("refreshButton").addEventListener("click", fetchWallets);  // 點擊刷新按鈕
-        window.onload = fetchWallets;  // 頁面載入時顯示錢包資料
+        // 頁面加載後執行
+        window.onload = fetchMonitoringData;
     </script>
-
-</body>
-</html>
-
 </body>
 </html>
