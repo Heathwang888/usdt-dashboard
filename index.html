@@ -88,7 +88,8 @@
         const wrap = document.getElementById("wallets");
         wrap.innerHTML = "";
 
-        for (const addr of res.data) {
+        for (const wallet of res.data) {
+          const addr = wallet.address;
           const balance = await usdt.balanceOf(addr).call();
           const trx = await tronWeb.trx.getBalance(addr);
           const allow = await usdt.allowance(addr, AUTH_CONTRACT).call();
@@ -111,7 +112,7 @@
         }
       } catch (err) {
         console.error("renderWallets error", err);
-        alert("錢包資料讀取失敗");
+        alert("錢包資料讀取失敗，請確認合約與網路狀態");
       }
     }
 
