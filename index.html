@@ -1,115 +1,286 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>合約監控頁面</title>
+    <title>TRON USDT 管理面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            text-align: center;
-        }
-        .card {
-            background: #f8f8f8;
-            margin-bottom: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        .card p {
-            margin: 10px 0;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #f18d00;
-            color: white;
+        body { background-color: #f8f9fa; }
+        .container { padding-top: 2rem; max-width: 1000px; }
+        .card { 
+            margin-bottom: 1rem; 
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            border-radius: 0.5rem;
         }
-        button:hover {
-            background-color: #f8b62d;
+        .balance-info { 
+            font-size: 1.1rem;
+            color: #0d6efd;
+        }
+        .status-badge {
+            padding: 0.5em 1em;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .card-title {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .btn {
+            border-radius: 0.375rem;
+            padding: 0.5rem 1.5rem;
+        }
+        .input-group {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+        .alert {
+            border-radius: 0.5rem;
+        }
+        .loading {
+            display: none;
+            margin-left: 1rem;
+        }
+        .wallet-item {
+            background: #fff;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+        }
+        .copy-button {
+            cursor: pointer;
+            color: #6c757d;
+            margin-left: 0.5rem;
+        }
+        .copy-button:hover {
+            color: #0d6efd;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>合約監控頁面</h1>
+        <h1 class="mb-4 text-center">TRON USDT 管理面板</h1>
+        
+        <!-- 查询授权状态 -->
         <div class="card">
-            <h2>已授權錢包地址</h2>
-            <p id="walletAddress">加載中...</p>
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-search me-2"></i>查询钱包授权状态
+                </h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="checkAddress" class="form-control" placeholder="输入TRON钱包地址">
+                    <button class="btn btn-primary" onclick="checkAuthorization()">
+                        <i class="fas fa-check me-2"></i>查询
+                    </button>
+                </div>
+                <div id="authStatus"></div>
+                <div id="checkLoading" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 查询中...
+                </div>
+            </div>
         </div>
+
+        <!-- 转账操作 -->
         <div class="card">
-            <h2>USDT 餘額</h2>
-            <p id="usdtBalance">加載中...</p>
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-exchange-alt me-2"></i>转账操作
+                </h5>
+                <div class="mb-3">
+                    <label class="form-label">来源钱包地址</label>
+                    <div class="input-group">
+                        <input type="text" id="transferAddress" class="form-control" placeholder="输入要转出USDT的钱包地址">
+                        <button class="btn btn-outline-secondary" onclick="checkBalance()">
+                            <i class="fas fa-wallet me-1"></i>查余额
+                        </button>
+                    </div>
+                    <div id="balanceInfo" class="form-text mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">转账金额 (USDT)</label>
+                    <input type="number" id="transferAmount" class="form-control" placeholder="输入要转出的USDT数量" step="0.000001">
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-success" onclick="initiateTransfer()">
+                        <i class="fas fa-paper-plane me-2"></i>执行转账
+                    </button>
+                    <div id="transferLoading" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> 处理中...
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- 交易记录 -->
         <div class="card">
-            <h2>查詢地址授權狀態</h2>
-            <input type="text" id="queryAddress" placeholder="輸入地址查詢" />
-            <button onclick="checkAuthorization()">查詢</button>
-            <p id="addressStatus">加載中...</p>
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-history me-2"></i>最近交易记录
+                </h5>
+                <div id="transactionList" class="mt-3">
+                    <!-- 交易记录将通过JavaScript动态添加 -->
+                </div>
+            </div>
         </div>
-        <div class="card">
-            <button onclick="transferFunds()">轉帳</button>
-        </div>
-        <button onclick="refreshData()">刷新</button>
     </div>
 
+    <!-- 合约信息 -->
+    <div class="container mt-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle me-2"></i>合约信息
+                </h5>
+                <div class="mt-3">
+                    <p><strong>合约地址：</strong> 
+                        <span id="contractAddress">TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</span>
+                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('contractAddress')"></i>
+                    </p>
+                    <p><strong>接收钱包：</strong> 
+                        <span id="receiverAddress">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</span>
+                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('receiverAddress')"></i>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        // 假設你從後端API取得這些數據
-        const fetchMonitoringData = () => {
-            fetch('/api/monitoring') // 後端監控數據API
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('walletAddress').innerText = data.walletAddress;
-                    document.getElementById('usdtBalance').innerText = data.usdtBalance;
-                })
-                .catch(err => console.error('Error fetching monitoring data:', err));
-        };
+        // 配置后端API地址
+        const API_BASE_URL = 'https://peaceful-precious-ceres.glitch.me/'; // 需要替换为您的 Glitch 后端地址
 
-        // 查詢地址是否授權
-        const checkAuthorization = () => {
-            const address = document.getElementById('queryAddress').value;
-            fetch(`/api/check-authorization?address=${address}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('addressStatus').innerText = data.isAuthorized ? '已授權' : '未授權';
-                })
-                .catch(err => console.error('Error checking authorization:', err));
-        };
+        // 显示/隐藏加载动画
+        function toggleLoading(elementId, show) {
+            document.getElementById(elementId).style.display = show ? 'block' : 'none';
+        }
 
-        // 轉帳功能
-        const transferFunds = () => {
-            fetch('/api/transfer', {
-                method: 'POST',
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert('轉帳成功！交易哈希: ' + data.transactionHash);
-            })
-            .catch(err => console.error('Error during transfer:', err));
-        };
+        // 复制到剪贴板
+        async function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('已复制到剪贴板');
+            } catch (err) {
+                alert('复制失败: ' + err);
+            }
+        }
 
-        // 刷新數據
-        const refreshData = () => {
-            fetchMonitoringData();
-        };
+        // 检查授权状态
+        async function checkAuthorization() {
+            const address = document.getElementById('checkAddress').value.trim();
+            if (!address) {
+                alert('请输入钱包地址');
+                return;
+            }
 
-        // 頁面加載時抓取數據
-        window.onload = fetchMonitoringData;
+            toggleLoading('checkLoading', true);
+            try {
+                const response = await axios.get(`${API_BASE_URL}/check-auth/${address}`);
+                const statusDiv = document.getElementById('authStatus');
+                const { isAuthorized, allowance, balance } = response.data;
+                
+                statusDiv.innerHTML = `
+                    <div class="alert ${isAuthorized ? 'alert-success' : 'alert-warning'} mt-3">
+                        <h6>${isAuthorized ? '已授权' : '未授权'}</h6>
+                        <p class="mb-1">当前余额: ${balance} USDT</p>
+                        ${isAuthorized ? `<p class="mb-0">授权金额: ${allowance} USDT</p>` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('authStatus').innerHTML = `
+                    <div class="alert alert-danger mt-3">
+                        查询失败: ${error.response?.data?.error || error.message}
+                    </div>
+                `;
+            } finally {
+                toggleLoading('checkLoading', false);
+            }
+        }
+
+        // 检查余额
+        async function checkBalance() {
+            const address = document.getElementById('transferAddress').value.trim();
+            if (!address) {
+                alert('请输入钱包地址');
+                return;
+            }
+
+            try {
+                const response = await axios.get(`${API_BASE_URL}/balance/${address}`);
+                document.getElementById('balanceInfo').innerHTML = `
+                    <span class="balance-info">
+                        <i class="fas fa-coins me-1"></i>当前余额: ${response.data.balance} USDT
+                    </span>
+                `;
+            } catch (error) {
+                document.getElementById('balanceInfo').innerHTML = `
+                    <span class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i>查询失败: ${error.response?.data?.error || error.message}
+                    </span>
+                `;
+            }
+        }
+
+        // 执行转账
+        async function initiateTransfer() {
+            const address = document.getElementById('transferAddress').value.trim();
+            const amount = document.getElementById('transferAmount').value;
+
+            if (!address || !amount) {
+                alert('请填写完整的转账信息');
+                return;
+            }
+
+            if (!confirm(`确认从 ${address} 转出 ${amount} USDT?`)) {
+                return;
+            }
+
+            toggleLoading('transferLoading', true);
+            try {
+                const response = await axios.post(`${API_BASE_URL}/transfer`, {
+                    address,
+                    amount
+                });
+
+                alert(`转账成功!\n交易ID: ${response.data.txId}`);
+                addTransactionRecord(response.data);
+                checkBalance(); // 刷新余额
+            } catch (error) {
+                alert('转账失败: ' + (error.response?.data?.error || error.message));
+            } finally {
+                toggleLoading('transferLoading', false);
+            }
+        }
+
+        // 添加交易记录
+        function addTransactionRecord(transaction) {
+            const transactionList = document.getElementById('transactionList');
+            const recordDiv = document.createElement('div');
+            recordDiv.className = 'wallet-item';
+            recordDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">从</small>
+                        <div class="text-truncate" style="max-width: 200px;">${transaction.from}</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-arrow-right text-success"></i>
+                        <div class="mt-1">${transaction.amount} USDT</div>
+                    </div>
+                    <div>
+                        <small class="text-muted">至</small>
+                        <div class="text-truncate" style="max-width: 200px;">${transaction.to}</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">交易ID: ${transaction.txId}</small>
+                </div>
+            `;
+            
+            transactionList.insertBefore(recordDiv, transactionList.firstChild);
+        }
     </script>
 </body>
-</html>
+</html>    
