@@ -1,8 +1,0 @@
-{
-  "name": "USDT 授權監控後台",
-  "short_name": "USDT 監控",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "description": "USDT 授權監控與管理系統"
-}
