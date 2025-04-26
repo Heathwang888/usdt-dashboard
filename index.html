@@ -1111,7 +1111,7 @@ async function initializeSocket() {
             document.getElementById('loading').style.display = 'none';
         }
 
-        // 顯示通知
+                // 顯示通知
         function showToast(message, type = 'info') {
             const toastContainer = document.querySelector('.toast-container');
             const toast = document.createElement('div');
@@ -1127,8 +1127,6 @@ async function initializeSocket() {
             toastContainer.appendChild(toast);
             
             setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toastContainer.removeChild(toast), 300);
             }, 3000);
