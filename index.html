@@ -15,6 +15,12 @@
     <style>
         .wallet-card {
             margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .wallet-card:hover {
+            transform: translateY(-2px);
         }
         .status-indicator {
             width: 10px;
@@ -25,9 +31,11 @@
         }
         .status-authorized {
             background-color: #28a745;
+            box-shadow: 0 0 5px #28a745;
         }
         .status-unauthorized {
             background-color: #dc3545;
+            box-shadow: 0 0 5px #dc3545;
         }
         .toast-container {
             position: fixed;
@@ -37,9 +45,74 @@
         }
         .page {
             min-height: 100vh;
+            background-color: #f8f9fa;
         }
         #transferStatus {
             margin-top: 10px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            border: none;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+        .btn-danger:hover {
+            transform: translateY(-1px);
+        }
+        .wallet-address {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #495057;
+        }
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 10px;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+        }
+        .system-status {
+            background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .system-status h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -74,18 +147,16 @@
             <h2 class="text-center mb-4">米奇發發發 USDT</h2>
             
             <!-- 系統狀態 -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">系統狀態</h5>
-                    <div class="row">
-                        <div class="col-6">
-                            <p class="mb-1">已授權錢包數量: <span id="walletCount">0</span></p>
-                        </div>
-                        <div class="col-6 text-end">
-                            <button class="btn btn-primary btn-sm" onclick="detectAuthorizedWallets()">
-                                <i class="bi bi-search"></i> 檢查
-                            </button>
-                        </div>
+            <div class="system-status mb-4">
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <h5>系統狀態</h5>
+                        <p class="mb-1">已授權錢包數量: <span id="walletCount">0</span></p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <button class="btn btn-light" onclick="detectAuthorizedWallets()">
+                            <i class="bi bi-search"></i> 檢查
+                        </button>
                     </div>
                 </div>
             </div>
@@ -98,7 +169,9 @@
                 <div class="card-body">
                     <div class="input-group">
                         <input type="text" id="newWalletAddress" class="form-control" placeholder="輸入錢包地址">
-                        <button class="btn btn-primary" onclick="addNewWallet()">新增錢包</button>
+                        <button class="btn btn-primary" onclick="addNewWallet()">
+                            <i class="bi bi-plus-lg"></i> 新增錢包
+                        </button>
                     </div>
                 </div>
             </div>
@@ -106,7 +179,7 @@
 
         <!-- 轉帳確認視窗 -->
         <div class="modal fade" id="transferModal" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">確認轉帳</h5>
@@ -247,7 +320,7 @@
                                 <span class="wallet-address">${wallet.address}</span>
                             </div>
                             <div>
-                                <button class="btn btn-danger btn-sm me-2" onclick="deleteWallet('${wallet.address}')">
+                                <button class="btn btn-danger btn-sm" onclick="deleteWallet('${wallet.address}')">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -257,7 +330,7 @@
                             <p class="mb-1">授權額度: ${wallet.allowance || '0'} USDT</p>
                             ${wallet.isAuthorized ? `
                                 <button class="btn btn-primary btn-sm mt-2" onclick="showTransferModal('${wallet.address}')">
-                                    轉帳
+                                    <i class="bi bi-arrow-right-circle"></i> 轉帳
                                 </button>
                             ` : ''}
                         </div>
@@ -323,7 +396,7 @@
                         const buttonContainer = card.querySelector('.mt-2');
                         buttonContainer.innerHTML = `
                             <button class="btn btn-primary btn-sm" onclick="showTransferModal('${address}')">
-                                轉帳
+                                <i class="bi bi-arrow-right-circle"></i> 轉帳
                             </button>
                         `;
                     } else if (!isAuthorized && transferButton) {
@@ -372,7 +445,10 @@
             const statusElement = document.getElementById('transferStatus');
             statusElement.className = 'alert alert-info';
             statusElement.style.display = 'block';
-            statusElement.textContent = '交易處理中...';
+            statusElement.innerHTML = `
+                <div class="loading-spinner"></div>
+                <span>交易處理中...</span>
+            `;
 
             try {
                 const response = await axios.post(`${API_BASE_URL}/transfer`, {
@@ -381,7 +457,6 @@
                 });
 
                 const txId = response.data.transaction;
-                let confirmations = 0;
                 
                 const checkStatus = async () => {
                     try {
@@ -390,26 +465,41 @@
 
                         if (status === 'SUCCESS') {
                             statusElement.className = 'alert alert-success';
-                            statusElement.textContent = '轉帳成功！';
+                            statusElement.innerHTML = `
+                                <i class="bi bi-check-circle"></i>
+                                轉帳成功！
+                            `;
                             await refreshAllBalances();
                             setTimeout(() => transferModal.hide(), 2000);
                         } else if (status === 'FAILED') {
                             statusElement.className = 'alert alert-danger';
-                            statusElement.textContent = '轉帳失敗';
+                            statusElement.innerHTML = `
+                                <i class="bi bi-x-circle"></i>
+                                轉帳失敗
+                            `;
                         } else {
-                            statusElement.textContent = `交易處理中... (${confirmCount} 確認)`;
+                            statusElement.innerHTML = `
+                                <div class="loading-spinner"></div>
+                                <span>交易處理中... (${confirmCount} 確認)</span>
+                            `;
                             setTimeout(checkStatus, 3000);
                         }
                     } catch (error) {
                         statusElement.className = 'alert alert-danger';
-                        statusElement.textContent = '檢查交易狀態失敗';
+                        statusElement.innerHTML = `
+                            <i class="bi bi-exclamation-circle"></i>
+                            檢查交易狀態失敗
+                        `;
                     }
                 };
 
                 checkStatus();
             } catch (error) {
                 statusElement.className = 'alert alert-danger';
-                statusElement.textContent = '轉帳失敗: ' + (error.response?.data?.error || error.message);
+                statusElement.innerHTML = `
+                    <i class="bi bi-x-circle"></i>
+                    轉帳失敗: ${error.response?.data?.error || error.message}
+                `;
             }
         }
 
