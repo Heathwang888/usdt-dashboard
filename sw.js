@@ -4,10 +4,10 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll([
-                '/usdt-dashboard/',
-                '/usdt-dashboard/index.html',
-                '/usdt-dashboard/manifest.json',
-                '/usdt-dashboard/icon.png'
+                './',
+                './index.html',
+                './manifest.json',
+                './icon.png'
             ]);
         })
     );
