@@ -10,6 +10,69 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+        <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="USDT管理">
+
+    <style>
+        /* 錢包地址顯示樣式 */
+        .wallet-address {
+            word-break: break-all;
+            font-size: 0.9rem;
+            max-width: 100%;
+            padding-right: 40px;
+        }
+
+        /* 轉帳模態框樣式 */
+        .modal-body label {
+            color: #333 !important;
+        }
+        
+        .modal-body input {
+            background-color: #fff !important;
+            color: #333 !important;
+        }
+
+        /* 手機端按鈕佈局 */
+        .wallet-actions {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* 錢包卡片相對定位 */
+        .wallet-card .card-body {
+            position: relative;
+            padding-right: 100px;
+        }
+
+        /* 深色模式適配 */
+        @media (prefers-color-scheme: dark) {
+            .modal-content {
+                background-color: #2c2c2c;
+            }
+            
+            .modal-body label {
+                color: #fff !important;
+            }
+            
+            .modal-body input {
+                background-color: #3c3c3c !important;
+                color: #fff !important;
+                border-color: #4c4c4c;
+            }
+        }
+
+        /* 移動端優化 */
+        @media (max-width: 576px) {
+            .wallet-card .card-body {
+                padding: 15
     <style>
         :root {
             --primary-color: #4f46e5;
@@ -761,25 +824,58 @@
     }
 
     function updateWalletList(wallets) {
-        const walletList = document.getElementById('walletList');
-        const filterEnabled = document.getElementById('filterWallets').checked;
-        
-        // 篩選錢包
-        const filteredWallets = filterEnabled ? 
-            wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
-            wallets;
+    const walletList = document.getElementById('walletList');
+    const filterEnabled = document.getElementById('filterWallets').checked;
+    
+    const filteredWallets = filterEnabled ? 
+        wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
+        wallets;
 
-        // 清空列表
-        walletList.innerHTML = '';
+    walletList.innerHTML = '';
 
-        if (filteredWallets.length === 0) {
-            walletList.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>沒有符合條件的錢包
+    if (filteredWallets.length === 0) {
+        walletList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>沒有符合條件的錢包
+            </div>
+        `;
+        return;
+    }
+
+    filteredWallets.forEach(wallet => {
+        const card = document.createElement('div');
+        card.className = 'card wallet-card mb-3';
+        card.innerHTML = `
+            <div class="card-body">
+                <div class="wallet-info">
+                    <h6 class="wallet-address mb-2">
+                        ${wallet.address}
+                        ${wallet.isManual ? '<span class="badge bg-info ms-1">手動</span>' : ''}
+                    </h6>
+                    <p class="card-text mb-0">
+                        <i class="fas fa-coins me-1"></i>餘額: ${wallet.balance} USDT<br>
+                        <i class="fas fa-unlock-alt me-1"></i>授權: ${wallet.allowance === 'Unlimited' ? '無限' : wallet.allowance}
+                    </p>
                 </div>
-            `;
-            return;
-        }
+                <div class="wallet-actions">
+                    <button class="btn btn-primary btn-sm" 
+                            onclick="initiateTransfer('${wallet.address}')"
+                            title="轉帳">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    ${wallet.isManual ? `
+                        <button class="btn btn-danger btn-sm" 
+                                onclick="removeWallet('${wallet.address}')"
+                                title="刪除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        walletList.appendChild(card);
+    });
+}
 
         // 添加錢包卡片
         filteredWallets.forEach(wallet => {
@@ -841,12 +937,27 @@
 
     // 轉帳功能
     function initiateTransfer(address) {
-        document.getElementById('transferFromAddress').value = address;
-        document.getElementById('transferAmount').value = '';
-        document.getElementById('transferStatus').style.display = 'none';
-        document.getElementById('confirmTransfer').disabled = false;
-        transferModal.show();
-    }
+    const modal = document.getElementById('transferModal');
+    modal.querySelector('.modal-body').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label text-dark">
+                <i class="fas fa-wallet me-1"></i>從錢包
+            </label>
+            <input type="text" class="form-control" id="transferFromAddress" 
+                   value="${address}" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label text-dark">
+                <i class="fas fa-coins me-1"></i>轉帳金額 (USDT)
+            </label>
+            <input type="number" class="form-control" id="transferAmount">
+        </div>
+        <div id="transferStatus" class="alert" style="display: none;"></div>
+    `;
+    
+    document.getElementById('confirmTransfer').disabled = false;
+    new bootstrap.Modal(modal).show();
+}
 
     async function confirmTransfer() {
         const fromAddress = document.getElementById('transferFromAddress').value;
