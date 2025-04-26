@@ -402,14 +402,17 @@
             setInterval(refreshAllBalances, 60000);
             
             // 註冊 Service Worker
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
+             if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/usdt-dashboard/sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed: ', err);
+                // 非致命錯誤，可以繼續運行
+            });
+    }
+});
             }
         });
     </script>
