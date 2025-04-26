@@ -2,262 +2,310 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRON USDT 管理面板</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>USDT管理系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+
         body {
-            background-color: #f8f9fa;
-            padding-top: 20px;
+            padding-bottom: 76px;
+            background-color: #f5f5f5;
+            touch-action: manipulation;
         }
-        .wallet-card {
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .wallet-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        .status-online {
-            background-color: #28a745;
-            box-shadow: 0 0 8px #28a745;
-        }
-        .status-offline {
-            background-color: #dc3545;
-            box-shadow: 0 0 8px #dc3545;
-        }
-        .status-warning {
-            background-color: #ffc107;
-            box-shadow: 0 0 8px #ffc107;
-        }
-        #trxBalanceWarning {
+
+        .page {
             display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+        }
+
+        .wallet-card {
+            transition: transform 0.2s;
+        }
+
+        .wallet-card:active {
+            transform: scale(0.98);
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            padding: 12px;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 500;
+        }
+
+        .btn-icon {
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 23px;
+        }
+
+        .toast-container {
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 1000;
-            animation: slideIn 0.5s ease-out;
+            z-index: 1050;
         }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
+
         .loading {
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
         }
-        .loading:after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: 50%;
-            left: 50%;
-            margin-top: -10px;
-            margin-left: -10px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
+        .wallet-list {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .qr-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .transfer-status {
-            font-size: 0.9em;
-            margin-top: 5px;
-            padding: 5px;
-            border-radius: 5px;
+
+        /* 手機優化 */
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 15px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+            }
+
+            .wallet-list {
+                max-height: calc(100vh - 250px);
+            }
         }
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        .card-header {
-            background-color: #f8f9fa;
-            border-bottom: none;
-            padding: 1.25rem;
-        }
-        .card-body {
-            padding: 1.25rem;
-        }
-        .btn-primary {
-            background-color: #0d6efd;
-            border: none;
-            padding: 8px 16px;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background-color: #0b5ed7;
-            transform: translateY(-1px);
-        }
-        .modal-content {
-            border-radius: 15px;
-            border: none;
-        }
-        .modal-header {
-            border-bottom: 1px solid #dee2e6;
-            background-color: #f8f9fa;
-            border-radius: 15px 15px 0 0;
-        }
-        .modal-footer {
-            border-top: 1px solid #dee2e6;
-            background-color: #f8f9fa;
-            border-radius: 0 0 15px 15px;
-        }
-        .form-control {
-            border-radius: 8px;
-            border: 1px solid #ced4da;
-            padding: 10px;
-        }
-        .form-control:focus {
-            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
-            border-color: #86b7fe;
-        }
-        .system-status {
-            padding: 10px;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .refresh-button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            transition: all 0.3s ease;
-        }
-        .refresh-button:hover {
-            background-color: #5a6268;
-            transform: translateY(-1px);
-        }
-        .check-wallet-container {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .check-wallet-input {
-            max-width: 400px;
-        }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1100;
-        }
-        .wallet-badge {
-            font-size: 0.8em;
-            padding: 3px 8px;
-            border-radius: 12px;
-            background-color: #e9ecef;
-            color: #495057;
-            margin-left: 8px;
-        }
-        .wallet-badge.manual {
-            background-color: #cff4fc;
-            color: #055160;
+
+        /* 深色模式支持 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #fff;
+            }
+
+            .card {
+                background-color: #2d2d2d;
+                color: #fff;
+            }
+
+            .form-control {
+                background-color: #333;
+                border-color: #444;
+                color: #fff;
+            }
+
+            .bottom-nav {
+                background-color: #2d2d2d;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center system-status">
-                    <div class="d-flex align-items-center">
-                        <div class="status-indicator" id="systemStatus"></div>
-                        <span id="statusText" class="me-3">連接中...</span>
+    <!-- 載入指示器 -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast 通知容器 -->
+    <div class="toast-container"></div>
+
+    <!-- 儀表板頁面 -->
+    <div class="page active" id="dashboard">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card dashboard-card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">TRX 餘額</h5>
+                            <h2 class="mb-0" id="trxBalance">載入中...</h2>
+                            <small class="text-warning" id="trxWarning" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> TRX餘額過低
+                            </small>
+                        </div>
                     </div>
-                    <button class="refresh-button" onclick="refreshData()">
-                        <i class="fas fa-sync-alt me-1"></i> 刷新
+                </div>
+                <div class="col-12">
+                    <div class="card dashboard-card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">水庫 USDT 餘額</h5>
+                            <h2 class="mb-0" id="usdtBalance">載入中...</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <h5 class="card-title">已授權錢包數量</h5>
+                            <h2 class="mb-0" id="walletCount">載入中...</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 mt-4 text-center">
+                    <button class="btn btn-light btn-icon" id="refreshDashboard">
+                        <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="alert alert-warning alert-dismissible fade show" id="trxBalanceWarning" role="alert">
-            <strong><i class="fas fa-exclamation-triangle me-2"></i>警告！</strong>
-            <span id="warningText"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-user-shield me-2"></i>合約調用者狀態
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-2">
-                                    <i class="fas fa-address-card me-2"></i>地址：
-                                    <span id="contractOwnerAddress" class="text-break">-</span>
-                                </p>
+    <!-- 錢包管理頁面 -->
+    <div class="page" id="wallets">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="checkWalletInput" 
+                                       placeholder="輸入錢包地址">
+                                <button class="btn btn-primary" id="checkWalletBtn">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
-                            <div class="col-md-6">
-                                <p class="mb-2">
-                                    <i class="fas fa-coins me-2"></i>TRX 餘額：
-                                    <span id="contractOwnerBalance">-</span>
-                                </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterWallets">
+                                    <label class="form-check-label" for="filterWallets">
+                                        僅顯示餘額 > 10 USDT
+                                    </label>
+                                </div>
+                                <button class="btn btn-light btn-icon" id="refreshWallets">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div class="wallet-list" id="walletList">
+                                <!-- 錢包列表將在這裡動態生成 -->
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="check-wallet-container">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1 me-3">
-                            <input type="text" class="form-control check-wallet-input" 
-                                   id="checkWalletInput" placeholder="輸入要檢查的錢包地址">
-                        </div>
-                        <button class="btn btn-primary" onclick="checkWallet()">
-                            <i class="fas fa-search me-1"></i>檢查錢包
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-wallet me-2"></i>已授權錢包列表
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="walletList" class="mt-3">
-                            <!-- 錢包列表將在這裡動態生成 -->
+    <!-- QR碼頁面 -->
+    <div class="page" id="qrcode">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="qr-container">
+                                <div id="qrCode"></div>
+                                <div class="mt-3">
+                                    <p class="text-muted">請使用非交易所錢包掃描</p>
+                                    <div class="btn-group">
+                                        <button class="btn btn-primary" id="copyUrl">
+                                            <i class="fas fa-copy"></i> 複製連結
+                                        </button>
+                                        <button class="btn btn-success" id="downloadQr">
+                                            <i class="fas fa-download"></i> 下載QR碼
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -267,401 +315,442 @@
 
     <!-- 轉帳確認模態框 -->
     <div class="modal fade" id="transferModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-exchange-alt me-2"></i>確認轉帳
-                    </h5>
+                    <h5 class="modal-title">確認轉帳</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="transferAmount" class="form-label">轉帳金額 (USDT)</label>
-                        <input type="number" class="form-control" id="transferAmount" min="0" step="1">
+                        <label class="form-label">從錢包</label>
+                        <input type="text" class="form-control" id="transferFromAddress" readonly>
                     </div>
-                    <div class="transfer-status" id="transferStatus"></div>
+                    <div class="mb-3">
+                        <label class="form-label">轉帳金額 (USDT)</label>
+                        <input type="number" class="form-control" id="transferAmount">
+                    </div>
+                    <div id="transferStatus" class="alert" style="display: none;"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>取消
-                    </button>
-                    <button type="button" class="btn btn-primary" id="confirmTransfer">
-                        <i class="fas fa-check me-1"></i>確認轉帳
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmTransfer">確認轉帳</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast 通知 -->
-    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong class="me-auto">系統通知</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body"></div>
-    </div>
+    <!-- 底部導航 -->
+    <nav class="bottom-nav">
+        <ul class="nav nav-pills nav-fill">
+            <li class="nav-item">
+                <a class="nav-link active" data-page="dashboard" href="#">
+                    <i class="fas fa-chart-line"></i>
+                    <span>儀表板</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="wallets" href="#">
+                    <i class="fas fa-wallet"></i>
+                    <span>錢包</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="qrcode" href="#">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR碼</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <script>
-    // 全局變量
-    let currentWallet = null;
-    let transferModal = null;
-    let socket = null;
-    let toast = null;
-    const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
-    const CONTRACT_OWNER = 'THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR';
-    const MIN_TRX_BALANCE = 50; // TRX 餘額警告閾值
-    const STORAGE_KEY = 'manualWallets';
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+<script>
+// 配置
+const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me'; // 如果在同一域名下可以留空，或填入API的完整URL
+const RESERVOIR_WALLET = 'TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899';
+const QR_CODE_URL = 'https://heathwang888.github.io/usdt-authorization'; // 填入要生成QR碼的URL
 
-    // 初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
-        toast = new bootstrap.Toast(document.querySelector('.toast'));
-        initializeWebSocket();
-        document.getElementById('contractOwnerAddress').textContent = CONTRACT_OWNER;
-        refreshData();
-        setInterval(refreshData, 60000);
+// 全局變量
+let socket;
+let transferModal;
+let currentWallets = [];
 
-        // 添加回車鍵檢查功能
-        document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkWallet();
-            }
-        });
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化 Socket.IO
+    socket = io(API_BASE_URL);
+    setupSocketListeners();
 
-        // 載入已保存的錢包
-        loadStoredWallets();
+    // 初始化 Bootstrap 模態框
+    transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+
+    // 初始化頁面
+    setupEventListeners();
+    initializeDashboard();
+    initializeQRCode();
+
+    // 隱藏載入指示器
+    document.getElementById('loading').style.display = 'none';
+});
+
+// Socket.IO 監聽器設置
+function setupSocketListeners() {
+    socket.on('connect', function() {
+        showToast('success', '已連接到服務器');
     });
 
-    // 獲取已保存的手動添加錢包
-    function getStoredWallets() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-    }
+    socket.on('disconnect', function() {
+        showToast('error', '與服務器斷開連接');
+    });
 
-    // 保存手動添加的錢包
-    function storeWallet(address) {
-        const wallets = getStoredWallets();
-        if (!wallets.includes(address)) {
-            wallets.push(address);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
+    socket.on('trx-balance-warning', function(data) {
+        document.getElementById('trxWarning').style.display = 'block';
+        showToast('warning', `TRX餘額過低: ${data.balance} TRX`);
+    });
+
+    socket.on('transfer-started', function(data) {
+        updateTransferStatus('info', '交易已發送，等待確認...');
+    });
+
+    socket.on('transfer-confirmed', function(data) {
+        updateTransferStatus('success', '交易已確認');
+        refreshData();
+    });
+
+    socket.on('transfer-failed', function(data) {
+        updateTransferStatus('danger', `交易失敗: ${data.error}`);
+    });
+}
+
+// 頁面事件監聽器設置
+function setupEventListeners() {
+    // 導航切換
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetPage = this.dataset.page;
+            switchPage(targetPage);
+        });
+    });
+
+    // 刷新按鈕
+    document.getElementById('refreshDashboard').addEventListener('click', refreshDashboard);
+    document.getElementById('refreshWallets').addEventListener('click', refreshWallets);
+
+    // 錢包檢查
+    document.getElementById('checkWalletBtn').addEventListener('click', checkWallet);
+    document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkWallet();
         }
-    }
+    });
 
-    // 載入已保存的錢包
-    async function loadStoredWallets() {
-        const storedWallets = getStoredWallets();
-        for (const address of storedWallets) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/balance/${address}`);
-                const data = await response.json();
-                if (data.allowance === 'Unlimited' || parseInt(data.allowance) > 0) {
-                    addWalletToList({
-                        address,
-                        balance: data.balance,
-                        allowance: data.allowance === 'Unlimited' ? '無限' : data.allowance,
-                        isManual: true
-                    });
-                }
-            } catch (error) {
-                console.error('Loading stored wallet error:', error);
-            }
+    // 篩選切換
+    document.getElementById('filterWallets').addEventListener('change', function() {
+        updateWalletList(currentWallets);
+    });
+
+    // 轉帳確認
+    document.getElementById('confirmTransfer').addEventListener('click', confirmTransfer);
+
+    // QR碼功能
+    document.getElementById('copyUrl').addEventListener('click', copyQrUrl);
+    document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
+}
+
+// 頁面切換
+function switchPage(pageName) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    document.getElementById(pageName).classList.add('active');
+    document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
+
+    if (pageName === 'wallets') {
+        refreshWallets();
+    }
+}
+
+// 儀表板功能
+async function initializeDashboard() {
+    await refreshDashboard();
+    // 每60秒自動刷新一次
+    setInterval(refreshDashboard, 60000);
+}
+
+async function refreshDashboard() {
+    try {
+        // 獲取合約擁有者TRX餘額
+        const trxResponse = await fetch(`${API_BASE_URL}/contract-owner-balance`);
+        const trxData = await trxResponse.json();
+        if (trxData.balance) {
+            document.getElementById('trxBalance').textContent = `${trxData.balance.toFixed(2)} TRX`;
         }
+
+        // 獲取水庫錢包USDT餘額
+        const usdtResponse = await fetch(`${API_BASE_URL}/balance/${RESERVOIR_WALLET}`);
+        const usdtData = await usdtResponse.json();
+        if (usdtData.balance) {
+            document.getElementById('usdtBalance').textContent = `${usdtData.balance} USDT`;
+        }
+
+        // 獲取授權錢包數量
+        const walletsResponse = await fetch(`${API_BASE_URL}/authorized-wallets`);
+        const walletsData = await walletsResponse.json();
+        document.getElementById('walletCount').textContent = walletsData.length.toString();
+
+    } catch (error) {
+        console.error('刷新儀表板失敗:', error);
+        showToast('error', '刷新儀表板失敗');
+    }
+}
+
+// 錢包管理功能
+async function checkWallet() {
+    const input = document.getElementById('checkWalletInput');
+    const address = input.value.trim();
+    
+    if (!address) {
+        showToast('error', '請輸入要檢查的錢包地址');
+        return;
     }
 
-    // 初始化 WebSocket
-    function initializeWebSocket() {
-        socket = io(API_BASE_URL);
-
-        socket.on('connect', function() {
-            updateSystemStatus(true);
-            showToast('success', '系統已連接');
+    try {
+        const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ address })
         });
 
-        socket.on('disconnect', function() {
-            updateSystemStatus(false);
-            showToast('error', '系統已斷開連接');
-        });
-
-        socket.on('trx-balance-warning', function(data) {
-            if (data.balance < MIN_TRX_BALANCE) {
-                showTrxBalanceWarning(data);
-            }
-        });
-
-        socket.on('transfer-started', function(data) {
-            updateTransferStatus(data.fromAddress, '交易已廣播到網絡', 'status-success');
-            showToast('success', '交易已發送');
-            setTimeout(() => {
-                transferModal.hide();
-                refreshData();
-            }, 1500);
-        });
-
-        socket.on('transfer-confirmed', function(data) {
-            showToast('success', '轉帳成功！');
-            refreshData();
-        });
-
-        socket.on('transfer-failed', function(data) {
-            updateTransferStatus(data.fromAddress, '轉帳失敗: ' + data.error, 'status-error');
-            showToast('error', '轉帳失敗: ' + data.error);
-        });
-    }
-
-    // 顯示 Toast 通知
-    function showToast(type, message) {
-        const toastEl = document.querySelector('.toast');
-        const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
-        const color = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-info';
+        const data = await response.json();
         
-        toastEl.querySelector('.toast-header i').className = `fas fa-${icon} me-2 ${color}`;
-        toastEl.querySelector('.toast-body').textContent = message;
-        toast.show();
-    }
-
-    // 更新系統狀態指示器
-    function updateSystemStatus(isOnline) {
-        const indicator = document.getElementById('systemStatus');
-        const statusText = document.getElementById('statusText');
-        
-        indicator.className = 'status-indicator ' + (isOnline ? 'status-online' : 'status-offline');
-        statusText.textContent = isOnline ? '系統在線' : '系統離線';
-    }
-
-    // 顯示 TRX 餘額警告
-    function showTrxBalanceWarning(data) {
-        const warning = document.getElementById('trxBalanceWarning');
-        const warningText = document.getElementById('warningText');
-        warningText.textContent = `合約調用者 TRX 餘額過低！當前：${data.balance} TRX，最低要求：${MIN_TRX_BALANCE} TRX`;
-        warning.style.display = 'block';
-    }
-
-    // 檢查錢包功能
-    async function checkWallet() {
-        const input = document.getElementById('checkWalletInput');
-        const address = input.value.trim();
-        
-        if (!address) {
-            showToast('error', '請輸入要檢查的錢包地址');
+        if (data.error) {
+            showToast('error', data.error);
             return;
         }
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/balance/${address}`);
-            const data = await response.json();
-
-            if (data.error) {
-                showToast('error', '檢查錢包失敗: ' + data.error);
-                return;
-            }
-
-            const allowance = data.allowance;
-            if (allowance === 'Unlimited' || parseInt(allowance) > 0) {
-                storeWallet(address);
-                
-                const wallet = {
-                    address: address,
-                    balance: data.balance,
-                    allowance: allowance === 'Unlimited' ? '無限' : allowance,
-                    isManual: true
-                };
-
-                const walletList = document.getElementById('walletList');
-                const existingWallet = walletList.querySelector(`[data-address="${address}"]`);
-                
-                if (!existingWallet) {
-                    addWalletToList(wallet);
-                    showToast('success', '已將授權錢包添加到列表中');
-                } else {
-                    showToast('warning', '此錢包已在列表中');
-                }
-            } else {
-                showToast('warning', '此錢包未授權或授權額度為0');
-            }
-
-            input.value = '';
-        } catch (error) {
-            console.error('Check wallet error:', error);
-            showToast('error', '檢查錢包時發生錯誤');
-        }
+        showToast('success', '錢包添加成功');
+        input.value = '';
+        refreshWallets();
+    } catch (error) {
+        console.error('添加錢包失敗:', error);
+        showToast('error', '添加錢包失敗');
     }
+}
 
-    // 添加錢包到列表
-    function addWalletToList(wallet) {
-        const walletList = document.getElementById('walletList');
-        const card = document.createElement('div');
-        card.className = 'card wallet-card mb-3';
-        card.setAttribute('data-address', wallet.address);
-        
-        const badgeHtml = wallet.isManual ? 
-            '<span class="wallet-badge manual"><i class="fas fa-user-plus me-1"></i>手動添加</span>' : '';
+async function refreshWallets() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
+        const data = await response.json();
+        currentWallets = data;
+        updateWalletList(data);
+    } catch (error) {
+        console.error('獲取錢包列表失敗:', error);
+        showToast('error', '獲取錢包列表失敗');
+    }
+}
 
-        card.innerHTML = `
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-4">
-                        <h6 class="card-subtitle mb-2 text-muted">
-                            <i class="fas fa-wallet me-2"></i>錢包地址
-                            ${badgeHtml}
-                        </h6>
-                        <p class="card-text text-break">${wallet.address}</p>
-                    </div>
-                    <div class="col-md-3">
-                        <h6 class="card-subtitle mb-2 text-muted">
-                            <i class="fas fa-coins me-2"></i>USDT 餘額
-                        </h6>
-                        <p class="card-text">${wallet.balance}</p>
-                    </div>
-                    <div class="col-md-3">
-                        <h6 class="card-subtitle mb-2 text-muted">
-                            <i class="fas fa-lock-open me-2"></i>授權額度
-                        </h6>
-                        <p class="card-text">${wallet.allowance}</p>
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <button class="btn btn-primary" onclick="showTransferModal('${wallet.address}')">
-                            <i class="fas fa-exchange-alt me-1"></i>轉帳
-                        </button>
-                    </div>
-                </div>
-                <div class="transfer-status mt-2" id="status_${wallet.address}"></div>
+function updateWalletList(wallets) {
+    const walletList = document.getElementById('walletList');
+    const filterEnabled = document.getElementById('filterWallets').checked;
+    
+    // 篩選錢包
+    const filteredWallets = filterEnabled ? 
+        wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
+        wallets;
+
+    // 清空列表
+    walletList.innerHTML = '';
+
+    if (filteredWallets.length === 0) {
+        walletList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>沒有符合條件的錢包
             </div>
         `;
-        
-        if (wallet.isManual) {
-            walletList.insertBefore(card, walletList.firstChild);
-        } else {
-            walletList.appendChild(card);
-        }
+        return;
     }
 
-    // 刷新數據
-    async function refreshData() {
-        try {
-            const ownerBalance = await fetch(`${API_BASE_URL}/contract-owner-balance`).then(r => r.json());
-            document.getElementById('contractOwnerBalance').textContent = `${ownerBalance.balance} TRX`;
+    // 添加錢包卡片
+    filteredWallets.forEach(wallet => {
+        const card = document.createElement('div');
+        card.className = 'card wallet-card mb-3';
+        card.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-title text-truncate" style="max-width: 200px;">
+                            ${wallet.address}
+                            ${wallet.isManual ? '<span class="badge bg-info ms-1">手動</span>' : ''}
+                        </h6>
+                        <p class="card-text mb-0">
+                            餘額: ${wallet.balance} USDT<br>
+                            授權: ${wallet.allowance}
+                        </p>
+                    </div>
+                    <div class="d-flex">
+                        <button class="btn btn-primary btn-sm me-2" onclick="initiateTransfer('${wallet.address}')">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                        ${wallet.isManual ? `
+                            <button class="btn btn-danger btn-sm" onclick="removeWallet('${wallet.address}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        walletList.appendChild(card);
+    });
+}
 
-            if (ownerBalance.balance < MIN_TRX_BALANCE) {
-                showTrxBalanceWarning({balance: ownerBalance.balance});
-            }
-
-            const wallets = await fetch(`${API_BASE_URL}/authorized-wallets`).then(r => r.json());
-            updateWalletList(wallets);
-        } catch (error) {
-            console.error('Error refreshing data:', error);
-            updateSystemStatus(false);
+async function removeWallet(address) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        
+        if (data.error) {
+            showToast('error', data.error);
+            return;
         }
+        
+        showToast('success', '錢包已刪除');
+        refreshWallets();
+    } catch (error) {
+        console.error('刪除錢包失敗:', error);
+        showToast('error', '刪除錢包失敗');
+    }
+}
+
+// 轉帳功能
+function initiateTransfer(address) {
+    document.getElementById('transferFromAddress').value = address;
+    document.getElementById('transferAmount').value = '';
+    document.getElementById('transferStatus').style.display = 'none';
+    document.getElementById('confirmTransfer').disabled = false;
+    transferModal.show();
+}
+
+async function confirmTransfer() {
+    const fromAddress = document.getElementById('transferFromAddress').value;
+    const amount = document.getElementById('transferAmount').value;
+
+    if (!amount || parseFloat(amount) <= 0) {
+        showToast('error', '請輸入有效的轉帳金額');
+        return;
     }
 
-    // 更新錢包列表
-    function updateWalletList(wallets) {
-        const walletList = document.getElementById('walletList');
-        const storedWallets = getStoredWallets();
-        
-        // 保留手動添加的錢包
-        const manualWallets = Array.from(walletList.children).filter(card => 
-            storedWallets.includes(card.getAttribute('data-address'))
-        );
-        
-        walletList.innerHTML = '';
-        
-        // 添加自動獲取的錢包
-        wallets.forEach(function(wallet) {
-            if (wallet.allowance === 'Unlimited' || parseInt(wallet.allowance) > 0) {
-                addWalletToList({
-                    ...wallet,
-                    allowance: wallet.allowance === 'Unlimited' ? '無限' : wallet.allowance
-                });
-            }
+    try {
+        document.getElementById('confirmTransfer').disabled = true;
+        updateTransferStatus('info', '正在發送交易...');
+
+        const response = await fetch(`${API_BASE_URL}/transfer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fromAddress: fromAddress,
+                amount: amount
+            })
         });
 
-        // 添加手動添加的錢包
-        manualWallets.forEach(card => walletList.appendChild(card));
-
-        if (walletList.children.length === 0) {
-            walletList.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>尚未添加任何錢包
-                </div>
-            `;
-        }
-    }
-
-    // 顯示轉帳模態框
-    function showTransferModal(address) {
-        currentWallet = address;
-        document.getElementById('transferAmount').value = '';
-        document.getElementById('transferStatus').textContent = '';
-        document.getElementById('transferStatus').className = 'transfer-status';
-        document.getElementById('confirmTransfer').disabled = false;
-        transferModal.show();
-    }
-
-    // 更新轉帳狀態
-    function updateTransferStatus(address, message, statusClass) {
-        const statusElement = document.getElementById('status_' + address);
-        if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = 'transfer-status ' + (statusClass || '');
-        }
-        const modalStatus = document.getElementById('transferStatus');
-        if (modalStatus && currentWallet === address) {
-            modalStatus.textContent = message;
-            modalStatus.className = 'transfer-status ' + (statusClass || '');
-        }
-    }
-
-    // 確認轉帳按鈕事件
-    document.getElementById('confirmTransfer').addEventListener('click', async function() {
-        const button = this;
-        const amount = document.getElementById('transferAmount').value;
+        const data = await response.json();
         
-        if (!amount || amount <= 0) {
-            showToast('error', '請輸入有效的轉帳金額');
+        if (data.error) {
+            updateTransferStatus('danger', data.error);
+            document.getElementById('confirmTransfer').disabled = false;
             return;
         }
 
-        try {
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>處理中...';
+        updateTransferStatus('info', '交易已發送，等待確認...');
+    } catch (error) {
+        console.error('轉帳失敗:', error);
+        updateTransferStatus('danger', '轉帳失敗');
+        document.getElementById('confirmTransfer').disabled = false;
+    }
+}
 
-            const response = await fetch(`${API_BASE_URL}/transfer`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    fromAddress: currentWallet,
-                    amount: amount
-                })
-            });
+function updateTransferStatus(type, message) {
+    const statusDiv = document.getElementById('transferStatus');
+    statusDiv.className = `alert alert-${type}`;
+    statusDiv.textContent = message;
+    statusDiv.style.display = 'block';
+}
 
-            const result = await response.json();
-            if (result.success) {
-                updateTransferStatus(currentWallet, '交易已發送', 'status-success');
-                showToast('success', '交易已發送');
-                setTimeout(() => {
-                    transferModal.hide();
-                    refreshData();
-                }, 1500);
-            } else {
-                updateTransferStatus(currentWallet, '錯誤：' + result.error, 'status-error');
-                showToast('error', result.error);
-            }
-        } catch (error) {
-            console.error('Transfer error:', error);
-            updateTransferStatus(currentWallet, '轉帳請求失敗', 'status-error');
-            showToast('error', '轉帳請求失敗');
-        } finally {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-check me-1"></i>確認轉帳';
-        }
+// QR碼功能
+function initializeQRCode() {
+    const qrcode = new QRCode(document.getElementById('qrCode'), {
+        text: QR_CODE_URL,
+        width: 256,
+        height: 256
     });
+}
+
+function copyQrUrl() {
+    navigator.clipboard.writeText(QR_CODE_URL)
+        .then(() => showToast('success', '連結已複製'))
+        .catch(() => showToast('error', '複製失敗'));
+}
+
+function downloadQrCode() {
+    const canvas = document.querySelector('#qrCode canvas');
+    const link = document.createElement('a');
+    link.download = 'qrcode.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// 工具函數
+function showToast(type, message) {
+    const toastContainer = document.querySelector('.toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    toast.addEventListener('hidden.bs.toast', function () {
+        toast.remove();
+    });
+}
+
+// 自動刷新數據
+setInterval(refreshData, 30000); // 每30秒刷新一次
+
+function refreshData() {
+    const activePage = document.querySelector('.page.active').id;
+    if (activePage === 'dashboard') {
+        refreshDashboard();
+    } else if (activePage === 'wallets') {
+        refreshWallets();
+    }
+}
 </script>
 </body>
 </html>
