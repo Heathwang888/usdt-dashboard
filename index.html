@@ -268,7 +268,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        /* 響應式調整 */
+                /* 響應式調整 */
         @media (max-width: 576px) {
             .bottom-nav {
                 padding: 8px 0;
@@ -281,6 +281,34 @@
             .btn-icon {
                 width: 36px;
                 height: 36px;
+            }
+
+            /* 新增：修復手機版按鈕超出範圍問題 */
+            .wallet-card .card-body {
+                padding: 12px;
+            }
+
+            .wallet-info {
+                max-width: 65%;  /* 限制資訊區域寬度 */
+            }
+
+            .wallet-address {
+                font-size: 0.9rem;
+                word-break: break-all;
+            }
+
+            .wallet-actions {
+                display: flex;
+                gap: 4px;  /* 減少按鈕間距 */
+            }
+
+            .wallet-actions .btn {
+                padding: 4px 8px;  /* 縮小按鈕內邊距 */
+                font-size: 0.875rem;  /* 縮小按鈕圖示 */
+            }
+
+            .card-text {
+                font-size: 0.875rem;  /* 縮小文字大小 */
             }
         }
     </style>
