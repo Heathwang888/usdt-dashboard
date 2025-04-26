@@ -10,7 +10,8 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="/usdt-dashboard/manifest.json">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="./icon.png">
     <style>
         .wallet-card {
             margin-bottom: 15px;
@@ -135,9 +136,34 @@
     <script>
         // 全局變量
         let token = localStorage.getItem('token');
-        const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me'; // 如果前後端在同一域名下，可以留空
+        const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
         let transferModal;
         let currentTransferWallet = '';
+
+        // Axios 配置
+        axios.defaults.timeout = 30000;
+        axios.interceptors.request.use(function (config) {
+            console.log('Making request to:', config.url);
+            return config;
+        }, function (error) {
+            console.error('Request error:', error);
+            return Promise.reject(error);
+        });
+
+        axios.interceptors.response.use(function (response) {
+            console.log('Response from:', response.config.url, response.data);
+            return response;
+        }, function (error) {
+            console.error('Response error:', error.response || error);
+            if (error.response) {
+                showToast(`錯誤 ${error.response.status}: ${error.response.data.error || '未知錯誤'}`, 'danger');
+            } else if (error.request) {
+                showToast('無法連接到服務器，請檢查網絡連接', 'danger');
+            } else {
+                showToast('請求錯誤: ' + error.message, 'danger');
+            }
+            return Promise.reject(error);
+        });
 
         // 頁面顯示控制
         function showLoginPage() {
@@ -148,24 +174,6 @@
         function showHomePage() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-        }
-
-        // 登入相關函數
-        async function handleLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
-                token = response.data.token;
-                localStorage.setItem('token', token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                await loadSavedWallets();
-                showHomePage();
-            } catch (error) {
-                showToast('登入失敗: ' + (error.response?.data?.error || error.message), 'danger');
-            }
         }
 
         // Toast 通知
@@ -184,6 +192,29 @@
             const toast = new bootstrap.Toast(toastElement);
             toast.show();
             setTimeout(() => toastElement.remove(), 5000);
+        }
+
+        // 登入相關函數
+        async function handleLogin(event) {
+            event.preventDefault();
+            try {
+                console.log('Attempting login...');
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
+                console.log('Login response:', response.data);
+
+                token = response.data.token;
+                localStorage.setItem('token', token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                
+                await loadSavedWallets();
+                showHomePage();
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('登入失敗: ' + (error.response?.data?.error || error.message), 'danger');
+            }
         }
 
         // 錢包管理
@@ -279,17 +310,14 @@
                     const response = await axios.get(`${API_BASE_URL}/balance/${address}`);
                     const { balance, allowance, isAuthorized } = response.data;
                     
-                    // 更新狀態指示器
                     const statusIndicator = card.querySelector('.status-indicator');
                     statusIndicator.className = `status-indicator ${isAuthorized ? 'status-authorized' : 'status-unauthorized'}`;
                     
-                    // 更新餘額和授權額度
                     const balanceElement = card.querySelector('p:nth-child(1)');
                     const allowanceElement = card.querySelector('p:nth-child(2)');
                     balanceElement.textContent = `餘額: ${balance} USDT`;
                     allowanceElement.textContent = `授權額度: ${allowance} USDT`;
                     
-                    // 更新轉帳按鈕
                     const transferButton = card.querySelector('button.btn-primary');
                     if (isAuthorized && !transferButton) {
                         const buttonContainer = card.querySelector('.mt-2');
@@ -386,35 +414,42 @@
         }
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Page loaded, API_BASE_URL:', API_BASE_URL);
             
-            // 設置 axios 默認 header
-            if (token) {
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                showHomePage();
-                loadSavedWallets();
-            } else {
-                showLoginPage();
-            }
-
-            // 自動刷新
-            setInterval(refreshAllBalances, 60000);
-            
-            // 註冊 Service Worker
-             if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/usdt-dashboard/sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registration successful');
-            })
-            .catch(err => {
-                console.log('ServiceWorker registration failed: ', err);
-                // 非致命錯誤，可以繼續運行
-            });
-    }
-});
+            try {
+                // 初始化 UI 元素
+                transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+                
+                // 檢查登入狀態
+                if (token) {
+                    console.log('Found existing token');
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                    showHomePage();
+                    await loadSavedWallets();
+                } else {
+                    console.log('No token found, showing login page');
+                    showLoginPage();
+                }
+                
+                // 設置自動刷新
+                setInterval(refreshAllBalances, 60000);
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showToast('初始化失敗: ' + error.message, 'danger');
             }
         });
+
+        // Service Worker 註冊
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        }
     </script>
 </body>
 </html>
