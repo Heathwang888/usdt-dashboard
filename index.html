@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRON USDT 管理面板</title>
-    <link rel="manifest" href="manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -14,26 +14,32 @@
         .wallet-card {
             margin-bottom: 15px;
             transition: all 0.3s ease;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .wallet-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 5px;
+            margin-right: 8px;
         }
         .status-online {
             background-color: #28a745;
+            box-shadow: 0 0 8px #28a745;
         }
         .status-offline {
             background-color: #dc3545;
+            box-shadow: 0 0 8px #dc3545;
         }
         .status-warning {
             background-color: #ffc107;
+            box-shadow: 0 0 8px #ffc107;
         }
         #trxBalanceWarning {
             display: none;
@@ -41,6 +47,11 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
         }
         .loading {
             position: relative;
@@ -66,6 +77,79 @@
         .transfer-status {
             font-size: 0.9em;
             margin-top: 5px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: none;
+            padding: 1.25rem;
+        }
+        .card-body {
+            padding: 1.25rem;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+        }
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        .modal-header {
+            border-bottom: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+            border-radius: 15px 15px 0 0;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+            border-radius: 0 0 15px 15px;
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 10px;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+            border-color: #86b7fe;
+        }
+        .system-status {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .refresh-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .refresh-button:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -73,39 +157,61 @@
     <div class="container">
         <div class="row mb-4">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2>TRON USDT 管理面板</h2>
+                <div class="d-flex justify-content-between align-items-center system-status">
                     <div class="d-flex align-items-center">
                         <div class="status-indicator" id="systemStatus"></div>
-                        <span id="statusText">連接中...</span>
+                        <span id="statusText" class="me-3">連接中...</span>
                     </div>
+                    <button class="refresh-button" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i> 刷新
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="alert alert-warning" id="trxBalanceWarning" role="alert">
-            合約調用者 TRX 餘額過低！
+        <div class="alert alert-warning alert-dismissible fade show" id="trxBalanceWarning" role="alert">
+            <strong><i class="fas fa-exclamation-triangle me-2"></i>警告！</strong>
+            <span id="warningText"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
         <div class="row mb-3">
             <div class="col-12">
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-shield me-2"></i>合約調用者狀態
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">合約調用者狀態</h5>
-                        <p class="card-text">
-                            地址: <span id="contractOwnerAddress">-</span><br>
-                            TRX 餘額: <span id="contractOwnerBalance">-</span>
-                        </p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2">
+                                    <i class="fas fa-address-card me-2"></i>地址：
+                                    <span id="contractOwnerAddress" class="text-break">-</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2">
+                                    <i class="fas fa-coins me-2"></i>TRX 餘額：
+                                    <span id="contractOwnerBalance">-</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row mb-3">
+        <div class="row">
             <div class="col-12">
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-wallet me-2"></i>已授權錢包列表
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">已授權錢包列表</h5>
                         <div id="walletList" class="mt-3">
                             <!-- 錢包列表將在這裡動態生成 -->
                         </div>
@@ -120,7 +226,9 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">確認轉帳</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-exchange-alt me-2"></i>確認轉帳
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -131,8 +239,12 @@
                     <div class="transfer-status" id="transferStatus"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="confirmTransfer">確認轉帳</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>取消
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmTransfer">
+                        <i class="fas fa-check me-1"></i>確認轉帳
+                    </button>
                 </div>
             </div>
         </div>
@@ -147,60 +259,46 @@
         let socket = null;
         const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
         const CONTRACT_OWNER = 'THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR';
+        const MIN_TRX_BALANCE = 50; // TRX 餘額警告閾值
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 初始化 Bootstrap 模態框
+        document.addEventListener('DOMContentLoaded', function() {
             transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
-            
-            // 初始化 WebSocket
             initializeWebSocket();
-            
-            // 顯示合約調用者地址
             document.getElementById('contractOwnerAddress').textContent = CONTRACT_OWNER;
-            
-            // 開始定期更新
-            await refreshData();
-            setInterval(refreshData, 60000); // 每分鐘更新一次
-            
-            // 註冊 Service Worker
-            if ('serviceWorker' in navigator) {
-                try {
-                    const registration = await navigator.serviceWorker.register('/service-worker.js');
-                    console.log('ServiceWorker registration successful');
-                } catch (err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                }
-            }
+            refreshData();
+            setInterval(refreshData, 60000);
         });
 
         // 初始化 WebSocket
         function initializeWebSocket() {
             socket = io(API_BASE_URL);
 
-            socket.on('connect', () => {
+            socket.on('connect', function() {
                 updateSystemStatus(true);
             });
 
-            socket.on('disconnect', () => {
+            socket.on('disconnect', function() {
                 updateSystemStatus(false);
             });
 
-            socket.on('trx-balance-warning', (data) => {
-                showTrxBalanceWarning(data);
+            socket.on('trx-balance-warning', function(data) {
+                if (data.balance < MIN_TRX_BALANCE) {
+                    showTrxBalanceWarning(data);
+                }
             });
 
-            socket.on('transfer-started', (data) => {
-                updateTransferStatus(data.fromAddress, '轉帳開始處理...');
+            socket.on('transfer-started', function(data) {
+                updateTransferStatus(data.fromAddress, '轉帳開始處理...', 'status-pending');
             });
 
-            socket.on('transfer-confirmed', (data) => {
-                updateTransferStatus(data.fromAddress, '轉帳成功！');
+            socket.on('transfer-confirmed', function(data) {
+                updateTransferStatus(data.fromAddress, '轉帳成功！', 'status-success');
                 refreshData();
             });
 
-            socket.on('transfer-failed', (data) => {
-                updateTransferStatus(data.fromAddress, `轉帳失敗: ${data.error}`);
+            socket.on('transfer-failed', function(data) {
+                updateTransferStatus(data.fromAddress, '轉帳失敗: ' + data.error, 'status-error');
             });
         }
 
@@ -216,22 +314,22 @@
         // 顯示 TRX 餘額警告
         function showTrxBalanceWarning(data) {
             const warning = document.getElementById('trxBalanceWarning');
-            warning.textContent = `警告：合約調用者 TRX 餘額過低！當前：${data.balance} TRX`;
+            const warningText = document.getElementById('warningText');
+            warningText.textContent = `合約調用者 TRX 餘額過低！當前：${data.balance} TRX，最低要求：${MIN_TRX_BALANCE} TRX`;
             warning.style.display = 'block';
-            setTimeout(() => {
-                warning.style.display = 'none';
-            }, 5000);
         }
 
         // 刷新數據
         async function refreshData() {
             try {
-                // 更新合約調用者餘額
-                const ownerBalance = await fetch(`${API_BASE_URL}/contract-owner-balance`).then(r => r.json());
-                document.getElementById('contractOwnerBalance').textContent = `${ownerBalance.balance} TRX`;
+                const ownerBalance = await fetch(API_BASE_URL + '/contract-owner-balance').then(r => r.json());
+                document.getElementById('contractOwnerBalance').textContent = ownerBalance.balance + ' TRX';
 
-                // 更新錢包列表
-                const wallets = await fetch(`${API_BASE_URL}/authorized-wallets`).then(r => r.json());
+                if (ownerBalance.balance < MIN_TRX_BALANCE) {
+                    showTrxBalanceWarning({balance: ownerBalance.balance});
+                }
+
+                const wallets = await fetch(API_BASE_URL + '/authorized-wallets').then(r => r.json());
                 updateWalletList(wallets);
             } catch (error) {
                 console.error('Error refreshing data:', error);
@@ -244,20 +342,37 @@
             const walletList = document.getElementById('walletList');
             walletList.innerHTML = '';
 
-            wallets.forEach(wallet => {
+            wallets.forEach(function(wallet) {
                 const card = document.createElement('div');
-                card.className = 'card wallet-card';
+                card.className = 'card wallet-card mb-3';
                 card.innerHTML = `
                     <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">錢包地址：${wallet.address}</h6>
-                        <p class="card-text">
-                            USDT 餘額：${wallet.balance}<br>
-                            授權額度：${wallet.allowance}
-                        </p>
-                        <button class="btn btn-primary btn-sm" onclick="showTransferModal('${wallet.address}')">
-                            轉帳
-                        </button>
-                        <div class="transfer-status" id="status_${wallet.address}"></div>
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <i class="fas fa-wallet me-2"></i>錢包地址
+                                </h6>
+                                <p class="card-text text-break">${wallet.address}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <i class="fas fa-coins me-2"></i>USDT 餘額
+                                </h6>
+                                <p class="card-text">${wallet.balance}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <i class="fas fa-lock-open me-2"></i>授權額度
+                                </h6>
+                                <p class="card-text">${wallet.allowance}</p>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <button class="btn btn-primary" onclick="showTransferModal('${wallet.address}')">
+                                    <i class="fas fa-exchange-alt me-1"></i>轉帳
+                                </button>
+                            </div>
+                        </div>
+                        <div class="transfer-status mt-2" id="status_${wallet.address}"></div>
                     </div>
                 `;
                 walletList.appendChild(card);
@@ -269,35 +384,39 @@
             currentWallet = address;
             document.getElementById('transferAmount').value = '';
             document.getElementById('transferStatus').textContent = '';
+            document.getElementById('transferStatus').className = 'transfer-status';
             transferModal.show();
         }
 
         // 更新轉帳狀態
-        function updateTransferStatus(address, message) {
-            const statusElement = document.getElementById(`status_${address}`);
+        function updateTransferStatus(address, message, statusClass) {
+            const statusElement = document.getElementById('status_' + address);
             if (statusElement) {
                 statusElement.textContent = message;
+                statusElement.className = 'transfer-status ' + (statusClass || '');
             }
             const modalStatus = document.getElementById('transferStatus');
             if (modalStatus && currentWallet === address) {
                 modalStatus.textContent = message;
+                modalStatus.className = 'transfer-status ' + (statusClass || '');
             }
         }
 
         // 確認轉帳按鈕事件
-        document.getElementById('confirmTransfer').addEventListener('click', async () => {
+        document.getElementById('confirmTransfer').addEventListener('click', async function() {
+            const button = this;
             const amount = document.getElementById('transferAmount').value;
+            
             if (!amount || amount <= 0) {
                 alert('請輸入有效的轉帳金額');
                 return;
             }
 
             try {
-                const button = document.getElementById('confirmTransfer');
                 button.disabled = true;
-                button.classList.add('loading');
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>處理中...';
 
-                const response = await fetch(`${API_BASE_URL}/transfer`, {
+                const response = await fetch(API_BASE_URL + '/transfer', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -310,21 +429,18 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    updateTransferStatus(currentWallet, '交易已發送，等待確認...');
+                    updateTransferStatus(currentWallet, '交易已發送，等待確認...', 'status-pending');
                 } else {
-                    updateTransferStatus(currentWallet, `錯誤：${result.error}`);
+                    updateTransferStatus(currentWallet, '錯誤：' + result.error, 'status-error');
                 }
             } catch (error) {
                 console.error('Transfer error:', error);
-                updateTransferStatus(currentWallet, '轉帳請求失敗');
+                updateTransferStatus(currentWallet, '轉帳請求失敗', 'status-error');
             } finally {
                 button.disabled = false;
-                button.classList.remove('loading');
+                button.innerHTML = '<i class="fas fa-check me-1"></i>確認轉帳';
             }
         });
-    </script>
-</body>
-</html>
     </script>
 </body>
 </html>
