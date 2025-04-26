@@ -90,6 +90,15 @@
                 background-color: var(--input-bg) !important;
                 color: var(--text-color) !important;
             }
+
+            .modal-header,
+            .modal-footer {
+                border-color: var(--border-color);
+            }
+
+            .modal .btn-close {
+                filter: invert(1) grayscale(100%) brightness(200%);
+            }
         }
 
         body {
@@ -98,8 +107,7 @@
             transition: background-color var(--transition-speed), color var(--transition-speed);
         }
 
-        /* 以下 CSS 保持不變 */
-                /* 儀表板地址文字顏色 */
+        /* 儀表板地址文字顏色 */
         .dashboard-card .address-text,
         .dashboard-card code {
             color: white !important;
@@ -406,7 +414,8 @@
             </div>
         </div>
     </div>
-        <!-- QR碼頁面 -->
+
+    <!-- QR碼頁面 -->
     <div class="page" id="qrcode">
         <div class="container">
             <div class="row justify-content-center">
@@ -645,7 +654,7 @@
                 }
             });
 
-            // 其他事件監聽保持不變
+            // 錢包檢查
             const checkWalletBtn = document.getElementById('checkWalletBtn');
             const checkWalletInput = document.getElementById('checkWalletInput');
             
@@ -656,19 +665,63 @@
                 }
             });
 
+            // 篩選切換 - 使用防抖
             document.getElementById('filterWallets').addEventListener('change', 
                 debounce(() => updateWalletList(currentWallets), 300)
             );
 
+            // 轉帳確認
             document.getElementById('confirmTransfer').addEventListener('click', confirmTransfer);
 
+            // QR碼功能
             document.getElementById('copyUrl').addEventListener('click', () => {
                 copyToClipboard(QR_CODE_URL);
             });
-            
             document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
         }
-                // 修改後的 refreshWallets 函數
+
+        // 儀表板功能
+        async function initializeDashboard() {
+            document.getElementById('reservoirAddress').textContent = RESERVOIR_WALLET;
+            await refreshDashboard();
+        }
+
+        async function refreshDashboard() {
+            try {
+                const [trxResponse, usdtResponse, walletsResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/contract-owner-balance`),
+                    fetch(`${API_BASE_URL}/balance/${RESERVOIR_WALLET}`),
+                    fetch(`${API_BASE_URL}/authorized-wallets`)
+                ]);
+
+                const [trxData, usdtData, walletsData] = await Promise.all([
+                    trxResponse.json(),
+                    usdtResponse.json(),
+                    walletsResponse.json()
+                ]);
+
+                if (trxData.balance) {
+                    document.getElementById('trxBalance').textContent = `${trxData.balance.toFixed(2)} TRX`;
+                    if (trxData.owner) {
+                        document.getElementById('contractOwnerAddress').textContent = trxData.owner;
+                    }
+                }
+
+                if (usdtData.balance) {
+                    document.getElementById('usdtBalance').textContent = `${usdtData.balance} USDT`;
+                }
+
+                if (Array.isArray(walletsData)) {
+                    document.getElementById('walletCount').textContent = walletsData.length.toString();
+                }
+
+            } catch (error) {
+                console.error('刷新儀表板失敗:', error);
+                showToast('error', '刷新儀表板失敗');
+            }
+        }
+
+        // 修改後的 refreshWallets 函數
         async function refreshWallets() {
             const now = Date.now();
             if (now - lastRefreshTime < REFRESH_COOLDOWN) {
@@ -770,7 +823,7 @@
             });
         }
 
-        // QR碼初始化
+        // QR碼功能
         function initializeQRCode() {
             const qrContainer = document.getElementById('qrCode');
             qrContainer.innerHTML = `
@@ -780,7 +833,7 @@
             `;
         }
 
-        // 其他功能保持不變
+        // 轉帳功能
         function initiateTransfer(address) {
             document.getElementById('transferFromAddress').value = address;
             document.getElementById('transferAmount').value = '';
@@ -836,6 +889,7 @@
             statusDiv.style.display = 'block';
         }
 
+        // 工具函數
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text)
                 .then(() => {
@@ -903,6 +957,22 @@
             toast.addEventListener('hidden.bs.toast', function () {
                 toast.remove();
             });
+        }
+
+        function switchPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            document.getElementById(pageName).classList.add('active');
+            document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
+
+            if (pageName === 'wallets') {
+                refreshWallets();
+            }
         }
 
         // 自動刷新數據
