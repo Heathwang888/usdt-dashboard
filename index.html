@@ -124,8 +124,7 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-
-        /* 載入指示器樣式 */
+                /* 載入指示器樣式 */
         .loading {
             position: fixed;
             top: 0;
@@ -268,7 +267,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-                /* 響應式調整 */
+        /* 響應式調整 */
         @media (max-width: 576px) {
             .bottom-nav {
                 padding: 8px 0;
@@ -401,8 +400,7 @@
             </div>
         </div>
     </div>
-
-    <!-- 錢包管理頁面 -->
+        <!-- 錢包管理頁面 -->
     <div class="page" id="wallets">
         <div class="container">
             <div class="row">
@@ -547,6 +545,7 @@
         let currentWallets = [];
         let lastRefreshTime = 0;
         const REFRESH_COOLDOWN = 2000;
+        let walletDataCache = new Map(); // 新增：用於緩存錢包數據
 
         // 工具函數：節流
         function throttle(func, limit) {
@@ -567,6 +566,11 @@
                 clearTimeout(timeout);
                 timeout = setTimeout(() => func.apply(this, args), wait);
             }
+        }
+
+        // 格式化地址顯示
+        function formatAddress(address) {
+            return `${address.substr(0, 6)}...${address.substr(-4)}`;
         }
 
         // 初始化
@@ -628,58 +632,35 @@
                 }
             });
 
-            // 新增授權監聽
-            socket.on('new-wallet-authorized', function(data) {
-                showToast('success', `檢測到新錢包授權: ${data.address.substr(0, 6)}...${data.address.substr(-4)}`);
+            // 改進的授權監聽
+            socket.on('new-wallet-authorized', async function(data) {
+                showToast('success', `檢測到新錢包授權: ${formatAddress(data.address)}`);
+                await updateWalletCache(data.address);
                 refreshWallets();
             });
 
-            socket.on('wallet-authorization-updated', function(data) {
-                showToast('info', `錢包授權更新: ${data.address.substr(0, 6)}...${data.address.substr(-4)}`);
+            socket.on('wallet-authorization-updated', async function(data) {
+                showToast('info', `錢包授權更新: ${formatAddress(data.address)}`);
+                await updateWalletCache(data.address);
                 refreshWallets();
             });
         }
 
-        async function checkWallet() {
-    const walletAddress = document.getElementById('checkWalletInput').value.trim();
-    
-    if (!walletAddress) {
-        showToast('error', '請輸入錢包地址');
-        return;
-    }
-
-    try {
-        // 禁用按鈕防止重複提交
-        document.getElementById('checkWalletBtn').disabled = true;
-        
-        // 檢查錢包是否已授權
-        const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ address: walletAddress })
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            showToast('error', data.error);
-        } else if (data.success) {
-            showToast('success', '錢包添加成功');
-            document.getElementById('checkWalletInput').value = '';
-            refreshWallets();
+        // 更新錢包緩存
+        async function updateWalletCache(address) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/balance/${address}`);
+                if (!response.ok) throw new Error('獲取錢包數據失敗');
+                const data = await response.json();
+                walletDataCache.set(address, {
+                    ...data,
+                    lastUpdated: Date.now()
+                });
+            } catch (error) {
+                console.error('更新錢包緩存失敗:', error);
+            }
         }
-    } catch (error) {
-        console.error('檢查錢包失敗:', error);
-        showToast('error', '檢查錢包失敗');
-    } finally {
-        // 重新啟用按鈕
-        document.getElementById('checkWalletBtn').disabled = false;
-    }
-}
-        
-        // 頁面事件監聽器設置
+                // 頁面事件監聽器設置
         function setupEventListeners() {
             // 導航切換
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -690,7 +671,7 @@
                 });
             });
 
-            // 刷新按鈕 - 修復刷新功能
+            // 刷新按鈕
             document.getElementById('refreshDashboard').addEventListener('click', async function() {
                 if (this.disabled) return;
                 this.disabled = true;
@@ -732,7 +713,7 @@
                 }
             });
 
-            // 篩選切換 - 使用防抖
+            // 篩選切換
             document.getElementById('filterWallets').addEventListener('change', 
                 debounce(() => updateWalletList(currentWallets), 300)
             );
@@ -747,7 +728,78 @@
             document.getElementById('downloadQr').addEventListener('click', downloadQrCode);
         }
 
-        // 儀表板功能
+        // 改進的檢查錢包函數
+        async function checkWallet() {
+            const walletAddress = document.getElementById('checkWalletInput').value.trim();
+            
+            if (!walletAddress) {
+                showToast('error', '請輸入錢包地址');
+                return;
+            }
+
+            try {
+                document.getElementById('checkWalletBtn').disabled = true;
+                
+                // 先檢查錢包數據
+                const balanceResponse = await fetch(`${API_BASE_URL}/balance/${walletAddress}`);
+                const balanceData = await balanceResponse.json();
+
+                // 添加到手動錢包列表
+                const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address: walletAddress })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast('success', '錢包添加成功');
+                    document.getElementById('checkWalletInput').value = '';
+                    
+                    // 更新緩存
+                    walletDataCache.set(walletAddress, {
+                        ...balanceData,
+                        isManual: true,
+                        lastUpdated: Date.now()
+                    });
+
+                    // 更新錢包列表
+                    await refreshWallets();
+                } else {
+                    showToast('error', data.error || '添加錢包失敗');
+                }
+            } catch (error) {
+                console.error('檢查錢包失敗:', error);
+                showToast('error', '檢查錢包失敗');
+            } finally {
+                document.getElementById('checkWalletBtn').disabled = false;
+            }
+        }
+
+        // 移除錢包
+        async function removeWallet(address) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showToast('success', '錢包已移除');
+                    walletDataCache.delete(address);
+                    currentWallets = currentWallets.filter(w => w.address !== address);
+                    updateWalletList(currentWallets);
+                } else {
+                    showToast('error', '移除錢包失敗');
+                }
+            } catch (error) {
+                console.error('移除錢包失敗:', error);
+                showToast('error', '移除錢包失敗');
+            }
+        }
+                // 儀表板功能
         async function initializeDashboard() {
             document.getElementById('reservoirAddress').textContent = RESERVOIR_WALLET;
             await refreshDashboard();
@@ -788,7 +840,7 @@
             }
         }
 
-        // 修改後的 refreshWallets 函數
+        // 改進的刷新錢包列表函數
         async function refreshWallets() {
             const now = Date.now();
             if (now - lastRefreshTime < REFRESH_COOLDOWN) {
@@ -798,50 +850,39 @@
 
             try {
                 const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
-                const newWallets = await response.json();
-
-                // 去除重複的錢包地址
-                const uniqueNewWallets = newWallets.filter((wallet, index, self) =>
-                    index === self.findIndex((w) => w.address === wallet.address)
-                );
-
-                // 合併新舊錢包列表，保持現有錢包
-                currentWallets = currentWallets.map(existingWallet => {
-                    const updatedWallet = uniqueNewWallets.find(w => w.address === existingWallet.address);
-                    return updatedWallet || {
-                        ...existingWallet,
-                        balance: '0',
-                        allowance: '0'
+                if (!response.ok) throw new Error('獲取錢包列表失敗');
+                
+                const wallets = await response.json();
+                
+                // 處理每個錢包的數據
+                const processedWallets = wallets.map(wallet => {
+                    const cachedData = walletDataCache.get(wallet.address);
+                    return {
+                        ...wallet,
+                        ...cachedData, // 使用緩存數據
+                        isManual: wallet.isManual || (cachedData && cachedData.isManual) || false
                     };
                 });
 
-                // 添加新的錢包（之前不存在的）
-                uniqueNewWallets.forEach(newWallet => {
-                    if (!currentWallets.some(w => w.address === newWallet.address)) {
-                        currentWallets.push(newWallet);
-                    }
-                });
-
+                // 更新當前錢包列表
+                currentWallets = processedWallets;
+                
+                // 更新顯示
                 updateWalletList(currentWallets);
             } catch (error) {
-                console.error('獲取錢包列表失敗:', error);
-                showToast('error', '獲取錢包列表失敗');
+                console.error('刷新錢包列表失敗:', error);
+                showToast('error', '刷新錢包列表失敗');
             }
         }
 
-        // 修改後的 updateWalletList 函數
+        // 改進的更新錢包列表函數
         function updateWalletList(wallets) {
             const walletList = document.getElementById('walletList');
             const filterEnabled = document.getElementById('filterWallets').checked;
             
-            // 去除重複的錢包地址
-            const uniqueWallets = wallets.filter((wallet, index, self) =>
-                index === self.findIndex((w) => w.address === wallet.address)
-            );
-            
             const filteredWallets = filterEnabled ? 
-                uniqueWallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
-                uniqueWallets;
+                wallets.filter(wallet => parseFloat(wallet.balance) > 10) : 
+                wallets;
 
             walletList.innerHTML = '';
 
@@ -855,6 +896,9 @@
             }
 
             filteredWallets.forEach(wallet => {
+                const isAuthorized = wallet.allowance === 'Unlimited' || parseFloat(wallet.allowance) > 0;
+                const allowanceDisplay = wallet.allowance === 'Unlimited' ? '無限' : wallet.allowance;
+
                 const card = document.createElement('div');
                 card.className = 'card wallet-card mb-3';
                 card.innerHTML = `
@@ -866,18 +910,20 @@
                                     ${wallet.isManual ? '<span class="badge bg-info ms-1">手動</span>' : ''}
                                 </h6>
                                 <p class="card-text mb-0">
-                                    <i class="fas fa-coins me-1"></i>餘額: ${wallet.balance} USDT<br>
-                                    <i class="fas fa-unlock-alt me-1"></i>授權: ${wallet.allowance === 'Unlimited' ? '無限' : wallet.allowance}
+                                    <i class="fas fa-coins me-1"></i>餘額: ${wallet.balance} USDT
+                                    <br>
+                                    <i class="fas fa-unlock-alt me-1"></i>授權: ${allowanceDisplay}
+                                    ${!isAuthorized ? '<span class="text-warning ms-1">(未授權)</span>' : ''}
                                 </p>
                             </div>
                             <div class="wallet-actions">
                                 <button class="btn btn-primary btn-sm" 
                                         onclick="initiateTransfer('${wallet.address}')"
-                                        ${parseFloat(wallet.balance) <= 0 ? 'disabled' : ''}>
+                                        ${(!isAuthorized || parseFloat(wallet.balance) <= 0) ? 'disabled' : ''}>
                                     <i class="fas fa-exchange-alt"></i>
                                 </button>
                                 ${wallet.isManual ? `
-                                    <button class="btn btn-danger btn-sm" 
+                                    <button class="btn btn-danger btn-sm ms-2" 
                                             onclick="removeWallet('${wallet.address}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -889,18 +935,7 @@
                 walletList.appendChild(card);
             });
         }
-
-        // QR碼功能
-        function initializeQRCode() {
-            const qrContainer = document.getElementById('qrCode');
-            qrContainer.innerHTML = `
-                <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(QR_CODE_URL)}&size=256x256" 
-                     alt="QR Code" 
-                     style="background-color: white; padding: 16px; border-radius: 12px;">
-            `;
-        }
-
-        // 轉帳功能
+                // 轉帳相關功能
         function initiateTransfer(address) {
             document.getElementById('transferFromAddress').value = address;
             document.getElementById('transferAmount').value = '';
@@ -942,6 +977,9 @@
                 }
 
                 updateTransferStatus('info', '交易已發送，等待確認...');
+                
+                // 清除相關緩存
+                walletDataCache.delete(fromAddress);
             } catch (error) {
                 console.error('轉帳失敗:', error);
                 updateTransferStatus('danger', '轉帳失敗');
@@ -956,20 +994,14 @@
             statusDiv.style.display = 'block';
         }
 
-        // 工具函數
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text)
-                .then(() => {
-                    showToast('success', '已複製到剪貼板');
-                })
-                .catch(() => {
-                    showToast('error', '複製失敗');
-                });
-        }
-
-        function copyAddress(elementId) {
-            const text = document.getElementById(elementId).textContent;
-            copyToClipboard(text);
+        // QR碼功能
+        function initializeQRCode() {
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = `
+                <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(QR_CODE_URL)}&size=256x256" 
+                     alt="QR Code" 
+                     style="background-color: white; padding: 16px; border-radius: 12px;">
+            `;
         }
 
         function downloadQrCode() {
@@ -990,6 +1022,22 @@
                 console.error('下載QR碼失敗:', error);
                 showToast('error', '下載QR碼失敗');
             }
+        }
+
+        // 工具函數
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    showToast('success', '已複製到剪貼板');
+                })
+                .catch(() => {
+                    showToast('error', '複製失敗');
+                });
+        }
+
+        function copyAddress(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            copyToClipboard(text);
         }
 
         function showToast(type, message) {
