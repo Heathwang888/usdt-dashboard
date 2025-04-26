@@ -638,86 +638,112 @@
         let isRefreshing = false;
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                initializeSocket();
-                initializeNavigation();
-                await refreshDashboard();
-                await refreshWalletList();
-                initializeEventListeners();
-                hideLoading();
-                
-                // 每30秒自動刷新一次數據
-                setInterval(async () => {
-                    if (!isRefreshing) {
-                        await refreshDashboard();
-                        await refreshWalletList();
-                    }
-                }, 30000);
-            } catch (error) {
-                console.error('Initialization error:', error);
-                showToast('初始化失敗，請刷新頁面重試', 'error');
-                hideLoading();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        showLoading(); // 確保在開始時顯示載入指示器
+        
+        // 按順序初始化各個組件
+        await initializeSocket();
+        initializeNavigation();
+        await Promise.all([
+            refreshDashboard(),
+            refreshWalletList()
+        ]);
+        initializeEventListeners();
+        
+        // 設置自動刷新
+        setInterval(async () => {
+            if (!isRefreshing) {
+                try {
+                    await Promise.all([
+                        refreshDashboard(),
+                        refreshWalletList()
+                    ]);
+                } catch (error) {
+                    console.error('Auto refresh error:', error);
+                }
             }
-        });
+        }, 30000);
 
-        // Socket.IO 初始化和監聽
-        function initializeSocket() {
-            try {
-                socket = io(API_BASE_URL, {
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionDelayMax: 5000,
-                    reconnectionAttempts: 5
-                });
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('初始化失敗，請刷新頁面重試', 'error');
+    } finally {
+        hideLoading(); // 確保無論成功或失敗都會隱藏載入指示器
+    }
+});
 
-                socket.on('connect', () => {
-                    console.log('Socket connected');
-                    showToast('已連接到服務器', 'success');
-                });
+        // Socket.IO 初始化
+async function initializeSocket() {
+    return new Promise((resolve, reject) => {
+        try {
+            socket = io(API_BASE_URL, {
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: 5,
+                timeout: 10000
+            });
 
-                socket.on('connect_error', (error) => {
-                    console.error('Socket connection error:', error);
-                });
+            socket.on('connect', () => {
+                console.log('Socket connected');
+                showToast('已連接到服務器', 'success');
+                resolve();
+            });
 
-                socket.on('disconnect', () => {
-                    console.log('Socket disconnected');
-                    showToast('與服務器斷開連接', 'error');
-                });
+            socket.on('connect_error', (error) => {
+                console.error('Socket connection error:', error);
+                reject(error);
+            });
 
-                socket.on('walletUpdate', async (data) => {
-                    try {
+            socket.on('disconnect', () => {
+                console.log('Socket disconnected');
+                showToast('與服務器斷開連接', 'error');
+            });
+
+            // 設置超時
+            setTimeout(() => {
+                if (!socket.connected) {
+                    reject(new Error('Socket connection timeout'));
+                }
+            }, 10000);
+
+            // 其他事件監聽保持不變
+            socket.on('walletUpdate', async (data) => {
+                try {
+                    await refreshWalletList();
+                    showToast(`錢包 ${data.address.slice(0, 8)}... 狀態已更新`, 'info');
+                } catch (error) {
+                    console.error('Wallet update error:', error);
+                }
+            });
+
+            socket.on('transferStatus', (data) => {
+                updateTransferStatus(data);
+            });
+
+            socket.on('walletSync', async (data) => {
+                try {
+                    if (data.action === 'add') {
+                        currentWallets.add(data.address);
                         await refreshWalletList();
-                        showToast(`錢包 ${data.address.slice(0, 8)}... 狀態已更新`, 'info');
-                    } catch (error) {
-                        console.error('Wallet update error:', error);
+                        showToast('新錢包已同步', 'success');
+                    } else if (data.action === 'remove') {
+                        currentWallets.delete(data.address);
+                        await refreshWalletList();
+                        showToast('錢包已移除並同步', 'info');
                     }
-                });
+                } catch (error) {
+                    console.error('Wallet sync error:', error);
+                }
+            });
 
-                socket.on('transferStatus', (data) => {
-                    updateTransferStatus(data);
-                });
-
-                socket.on('walletSync', async (data) => {
-                    try {
-                        if (data.action === 'add') {
-                            currentWallets.add(data.address);
-                            await refreshWalletList();
-                            showToast('新錢包已同步', 'success');
-                        } else if (data.action === 'remove') {
-                            currentWallets.delete(data.address);
-                            await refreshWalletList();
-                            showToast('錢包已移除並同步', 'info');
-                        }
-                    } catch (error) {
-                        console.error('Wallet sync error:', error);
-                    }
-                });
-            } catch (error) {
-                console.error('Socket initialization error:', error);
-                showToast('無法連接到服務器', 'error');
-            }
+        } catch (error) {
+            console.error('Socket initialization error:', error);
+            reject(error);
         }
+    });
+}
 
         // 導航初始化
         function initializeNavigation() {
@@ -794,52 +820,54 @@
             });
         }
 
-        // 刷新儀表板
         async function refreshDashboard() {
-            if (isRefreshing) return;
-            isRefreshing = true;
-            
-            const refreshBtn = document.getElementById('refreshDashboard');
-            refreshBtn.classList.add('btn-loading');
+    if (isRefreshing) return;
+    
+    const refreshBtn = document.getElementById('refreshDashboard');
+    refreshBtn.classList.add('btn-loading');
+    isRefreshing = true;
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/dashboard`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.success) {
-                    document.getElementById('trxBalance').textContent = `${data.data.trxBalance} TRX`;
-                    document.getElementById('usdtBalance').textContent = `${data.data.usdtBalance} USDT`;
-                    document.getElementById('walletCount').textContent = data.data.walletCount;
-                    document.getElementById('contractOwnerAddress').textContent = data.data.contractOwner || '載入中...';
-
-                    const trxWarning = document.getElementById('trxWarning');
-                    if (data.data.trxBalance < 10) {
-                        trxWarning.style.display = 'inline-block';
-                    } else {
-                        trxWarning.style.display = 'none';
-                    }
-                } else {
-                    throw new Error(data.message || '更新失敗');
-                }
-            } catch (error) {
-                console.error('Dashboard refresh error:', error);
-                showToast('更新儀表板失敗', 'error');
-            } finally {
-                refreshBtn.classList.remove('btn-loading');
-                isRefreshing = false;
+    try {
+        const response = await fetch(`${API_BASE_URL}/dashboard`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        
+        // 更新 UI
+        document.getElementById('trxBalance').textContent = 
+            data.success ? `${data.data.trxBalance} TRX` : '載入失敗';
+        document.getElementById('usdtBalance').textContent = 
+            data.success ? `${data.data.usdtBalance} USDT` : '載入失敗';
+        document.getElementById('walletCount').textContent = 
+            data.success ? data.data.walletCount : '載入失敗';
+        document.getElementById('contractOwnerAddress').textContent = 
+            data.success ? (data.data.contractOwner || '無數據') : '載入失敗';
+
+        // 更新 TRX 警告
+        const trxWarning = document.getElementById('trxWarning');
+        if (data.success && data.data.trxBalance < 10) {
+            trxWarning.style.display = 'inline-block';
+        } else {
+            trxWarning.style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('Dashboard refresh error:', error);
+        showToast('更新儀表板失敗', 'error');
+    } finally {
+        refreshBtn.classList.remove('btn-loading');
+        isRefreshing = false;
+    }
+}
 
         // 刷新錢包列表
         async function refreshWalletList() {
