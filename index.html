@@ -6,7 +6,6 @@
     <title>USDT 管理面板</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     
     <!-- 手機桌面圖標設置 -->
     <link rel="icon" type="image/png" href="icon.png">
@@ -14,7 +13,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="USDT管理">
-        <style>
+
+    <style>
         :root {
             --primary-color: #0d6efd;
             --secondary-color: #6c757d;
@@ -48,12 +48,43 @@
                 --input-bg: #3c3c3c;
                 --input-text: #ffffff;
             }
+
+            /* 確保深色模式下文字可見 */
+            .card {
+                color: var(--text-color);
+            }
+
+            .form-check-label {
+                color: var(--text-color);
+            }
+
+            .modal-title, .modal-body label {
+                color: var(--text-color) !important;
+            }
+
+            .text-muted {
+                color: #a7a7a7 !important;
+            }
+
+            .wallet-card {
+                background-color: var(--card-bg);
+            }
+
+            .wallet-address {
+                color: var(--text-color);
+            }
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        /* 儀表板地址文字顏色 */
+        .dashboard-card .address-text,
+        .dashboard-card code {
+            color: white !important;
         }
 
         .card {
@@ -131,7 +162,7 @@
             transform: translateY(0);
         }
 
-        /* 改進的底部導航樣式 */
+        /* 底部導航樣式 */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -193,83 +224,6 @@
         .dashboard-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        }
-
-        /* 改進的錢包列表樣式 */
-        .wallet-card {
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .wallet-card .card-body {
-            padding: 20px;
-        }
-
-        .wallet-actions {
-            gap: 8px;
-        }
-
-        .wallet-actions .btn {
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-speed);
-        }
-
-        .wallet-actions .btn:hover {
-            transform: scale(1.1);
-        }
-
-        /* 改進的模態框樣式 */
-        .modal-content {
-            background-color: var(--modal-bg);
-            border-radius: 16px;
-        }
-
-        .modal-header {
-            border-bottom-color: var(--border-color);
-        }
-
-        .modal-footer {
-            border-top-color: var(--border-color);
-        }
-
-        .form-control {
-            background-color: var(--input-bg);
-            color: var(--input-text);
-            border-color: var(--border-color);
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            background-color: var(--input-bg);
-            color: var(--input-text);
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-
-        /* 改進的按鈕樣式 */
-        .btn {
-            border-radius: 8px;
-            transition: all var(--transition-speed);
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-icon {
-            width: 40px;
-            height: 40px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
         }
 
         /* QR碼容器樣式 */
@@ -933,25 +887,12 @@
 
         // QR碼功能
         function initializeQRCode() {
-            try {
-                const qrContainer = document.getElementById('qrCode');
-                qrContainer.innerHTML = '';
-                
-                new QRCode(qrContainer, {
-                    text: QR_CODE_URL,
-                    width: 256,
-                    height: 256,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            } catch (error) {
-                console.error('生成QR碼失敗:', error);
-                document.getElementById('qrCode').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle me-1"></i>QR碼生成失敗
-                    </div>`;
-            }
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = `
+                <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(QR_CODE_URL)}&size=256x256" 
+                     alt="QR Code" 
+                     style="background-color: white; padding: 16px; border-radius: 12px;">
+            `;
         }
 
         // 複製功能
@@ -972,8 +913,8 @@
 
         // 下載QR碼
         function downloadQrCode() {
-            const canvas = document.querySelector('#qrCode canvas');
-            if (!canvas) {
+            const img = document.querySelector('#qrCode img');
+            if (!img) {
                 showToast('error', 'QR碼尚未生成');
                 return;
             }
@@ -981,7 +922,7 @@
             try {
                 const link = document.createElement('a');
                 link.download = 'qrcode.png';
-                link.href = canvas.toDataURL('image/png');
+                link.href = img.src;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
