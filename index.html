@@ -640,6 +640,45 @@
             });
         }
 
+        async function checkWallet() {
+    const walletAddress = document.getElementById('checkWalletInput').value.trim();
+    
+    if (!walletAddress) {
+        showToast('error', '請輸入錢包地址');
+        return;
+    }
+
+    try {
+        // 禁用按鈕防止重複提交
+        document.getElementById('checkWalletBtn').disabled = true;
+        
+        // 檢查錢包是否已授權
+        const response = await fetch(`${API_BASE_URL}/manual-wallets`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ address: walletAddress })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast('error', data.error);
+        } else if (data.success) {
+            showToast('success', '錢包添加成功');
+            document.getElementById('checkWalletInput').value = '';
+            refreshWallets();
+        }
+    } catch (error) {
+        console.error('檢查錢包失敗:', error);
+        showToast('error', '檢查錢包失敗');
+    } finally {
+        // 重新啟用按鈕
+        document.getElementById('checkWalletBtn').disabled = false;
+    }
+}
+        
         // 頁面事件監聽器設置
         function setupEventListeners() {
             // 導航切換
