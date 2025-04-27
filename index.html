@@ -647,19 +647,33 @@
         }
 
         // 更新錢包緩存
-        async function updateWalletCache(address) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/balance/${address}`);
-                if (!response.ok) throw new Error('獲取錢包數據失敗');
-                const data = await response.json();
-                walletDataCache.set(address, {
-                    ...data,
-                    lastUpdated: Date.now()
-                });
-            } catch (error) {
-                console.error('更新錢包緩存失敗:', error);
-            }
-        }
+        // 修改 refreshWallets 函数
+async function refreshWallets() {
+    const now = Date.now();
+    if (now - lastRefreshTime < REFRESH_COOLDOWN) {
+        return;
+    }
+    lastRefreshTime = now;
+
+    try {
+        // 清除缓存数据
+        walletDataCache.clear();  // 添加这行
+        
+        const response = await fetch(`${API_BASE_URL}/authorized-wallets`);
+        if (!response.ok) throw new Error('獲取錢包列表失敗');
+        
+        const wallets = await response.json();
+        
+        // 更新当前钱包列表，不使用缓存数据
+        currentWallets = wallets;
+        
+        // 更新显示
+        updateWalletList(currentWallets);
+    } catch (error) {
+        console.error('刷新錢包列表失敗:', error);
+        showToast('error', '刷新錢包列表失敗');
+    }
+}
                 // 頁面事件監聽器設置
         function setupEventListeners() {
             // 導航切換
@@ -780,25 +794,30 @@
         }
 
         // 移除錢包
-        async function removeWallet(address) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
-                    method: 'DELETE'
-                });
+// 修改 removeWallet 函数
+async function removeWallet(address) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/manual-wallets/${address}`, {
+            method: 'DELETE'
+        });
 
-                if (response.ok) {
-                    showToast('success', '錢包已移除');
-                    walletDataCache.delete(address);
-                    currentWallets = currentWallets.filter(w => w.address !== address);
-                    updateWalletList(currentWallets);
-                } else {
-                    showToast('error', '移除錢包失敗');
-                }
-            } catch (error) {
-                console.error('移除錢包失敗:', error);
-                showToast('error', '移除錢包失敗');
-            }
+        if (response.ok) {
+            showToast('success', '錢包已移除');
+            
+            // 清除所有相关缓存
+            walletDataCache.clear();  // 清除所有缓存
+            currentWallets = currentWallets.filter(w => w.address !== address);
+            
+            // 强制刷新钱包列表
+            await refreshWallets();
+        } else {
+            showToast('error', '移除錢包失敗');
         }
+    } catch (error) {
+        console.error('移除錢包失敗:', error);
+        showToast('error', '移除錢包失敗');
+    }
+}
                 // 儀表板功能
         async function initializeDashboard() {
             document.getElementById('reservoirAddress').textContent = RESERVOIR_WALLET;
@@ -1075,32 +1094,36 @@
         }
 
         function switchPage(pageName) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
 
-            document.getElementById(pageName).classList.add('active');
-            document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
+    document.getElementById(pageName).classList.add('active');
+    document.querySelector(`.nav-link[data-page="${pageName}"]`).classList.add('active');
 
-            if (pageName === 'wallets') {
-                refreshWallets();
-            }
-        }
+    if (pageName === 'wallets') {
+        walletDataCache.clear();  // 添加这行
+        refreshWallets();
+    }
+}
 
         // 自動刷新數據
         setInterval(refreshData, 30000);
 
         function refreshData() {
-            const activePage = document.querySelector('.page.active').id;
-            if (activePage === 'dashboard') {
-                refreshDashboard();
-            } else if (activePage === 'wallets') {
-                refreshWallets();
-            }
-        }
+    // 清除所有缓存
+    walletDataCache.clear();
+    
+    const activePage = document.querySelector('.page.active').id;
+    if (activePage === 'dashboard') {
+        refreshDashboard();
+    } else if (activePage === 'wallets') {
+        refreshWallets();
+    }
+}
     </script>
 </body>
 </html>
